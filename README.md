@@ -12,8 +12,10 @@ A private, 100% local AI writing, speech-to-text, and semantic bookmark studio b
   - Offline audio transcription using local `ggml` Whisper models.
 - **Hybrid Semantic Bookmark Search:**
   - Parses Chrome, Edge, Firefox, and Safari bookmarks into a local SQLite vector store (`BookmarkVectorDb`), paired with browser-side `all-MiniLM-L6-v2` (384-dim) WASM/ONNX embeddings (`COOP`/`COEP` headers enabled).
-- **Browser-Side Edge AI Utilities:**
-  - Client-side TTS, background removal, image segmentation, and zero-shot classification views.
+- **Browser-Side Vision & Edge AI Studio (WebGPU / WASM — 100% Local):**
+  - **AI Background Remover:** Removes image backgrounds locally in the browser with zero server uploads.
+  - **Interactive Image Segmentation:** Click-to-segment object selection and masking running directly in-browser via ONNX/WASM.
+  - **Text-to-Speech (TTS) & Zero-Shot Classification:** Local browser-side speech synthesis and zero-shot text classification.
 
 ## Tech Stack
 
