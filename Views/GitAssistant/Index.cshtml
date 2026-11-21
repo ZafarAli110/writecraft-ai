@@ -1,0 +1,254 @@
+@{
+    ViewData["Title"] = "Git Assistant - WriteCraftAI";
+}
+
+@section Styles {
+    <style>
+        .token-counter {
+            font-size: 0.875rem;
+            color: var(--bs-secondary-color);
+        }
+
+        .token-counter.warning {
+            color: var(--bs-warning) !important;
+        }
+
+        .token-counter.danger {
+            color: var(--bs-danger) !important;
+        }
+
+        .output-area {
+            min-height: 200px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .metrics {
+            font-size: 0.75rem;
+            color: var(--bs-secondary);
+        }
+    </style>
+}
+
+<div class="row">
+    <div class="col-12">
+
+        <!-- Feature Description -->
+        <div class="alert border-0 mb-4 feature-description-box">
+            <div class="d-flex align-items-start gap-3">
+                <i class="bi bi-git fs-4 text-primary"></i>
+                <div>
+                    <h6 class="mb-1 fw-semibold text-light">Git Command Assistant</h6>
+                    <small class="text-secondary">Get help with Git commands in plain English. Describe what you want to do (undo commits, merge branches, resolve conflicts, etc.) and the AI will provide the exact commands and explanations. Great for both beginners and experienced developers.</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Card -->
+        <div class="card mb-4 border-slate-700 bg-slate-800">
+            <div class="card-header bg-slate-900 border-bottom border-slate-700">
+                <h5 class="mb-0 text-indigo-400">
+                    <i class="bi bi-git me-2"></i>Git Assistant
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="inputText" class="form-label text-slate-300">Describe what you want to do with Git</label>
+                    <textarea id="inputText" class="form-control bg-slate-900 text-slate-100 border-slate-600"
+                              rows="4" placeholder="E.g., I want to undo my last commit but keep the changes, or show me files I modified since a specific commit..."></textarea>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span id="tokenCounter" class="token-counter">Tokens: 0/4096</span>
+
+                    <div class="d-flex gap-2">
+                        <select id="exampleSelect" class="form-select form-select-sm w-auto bg-slate-900 text-slate-100 border-slate-600">
+                            <option value="">💡 Example Queries...</option>
+                            <option value="I want to see which files I touched starting from a specific commit">Files touched since commit</option>
+                            <option value="I messed up my current merge, how can I undo it? I did not commit or push yet">Undo failed merge</option>
+                            <option value="How do I squash my last 5 commits into one before pushing?">Squash commits</option>
+                            <option value="I accidentally committed to main instead of my feature branch, how do I fix this?">Wrong branch commit</option>
+                            <option value="How can I see the diff between two branches but only for .cs files?">Filtered branch diff</option>
+                            <option value="I want to cherry-pick a commit from another branch but resolve conflicts manually">Cherry-pick with conflicts</option>
+                            <option value="How do I undo a pushed commit without rewriting history?">Revert pushed commit</option>
+                        </select>
+                        <button id="askBtn" class="btn btn-primary btn-sm fw-semibold">
+                            <span class="d-none spinner-border spinner-border-sm me-1" id="askSpinner"></span>
+                            <i class="bi bi-chat-dots"></i> Ask Git Assistant
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Card -->
+        <div class="card border-slate-700 bg-slate-800" id="outputCard" style="display: none;">
+            <div class="card-header bg-slate-900 border-bottom border-slate-700 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-indigo-400">
+                    <i class="bi bi-terminal me-2"></i>Git Assistant Response
+                </h5>
+                <small id="metrics" class="metrics"></small>
+            </div>
+            <div id="aiLoadingIndicator" class="ai-loading-indicator" style="display: none;">
+                <span class="spinner-border text-primary" role="status"></span>
+                <span>AI is processing...</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="waitingMessage" class="waiting-text" style="display: none;">
+                    Analyzing your Git question<span class="waiting-dots"></span>
+                </div>
+                <div id="output" class="output-area m-0 p-3"></div>
+            </div>
+            <div class="card-footer bg-slate-900 border-top border-slate-700">
+                <div class="d-flex gap-2 justify-content-end">
+                    <button id="copyBtn" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                    <button id="clearBtn" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-trash"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/stream-handler.js" asp-append-version="true"></script>
+    <script>
+        const inputText = document.getElementById('inputText');
+        const tokenCounter = document.getElementById('tokenCounter');
+        const exampleSelect = document.getElementById('exampleSelect');
+        const askBtn = document.getElementById('askBtn');
+        const askSpinner = document.getElementById('askSpinner');
+        const outputCard = document.getElementById('outputCard');
+        const output = document.getElementById('output');
+        const metrics = document.getElementById('metrics');
+        const waitingMessage = document.getElementById('waitingMessage');
+        const aiLoadingIndicator = document.getElementById('aiLoadingIndicator');
+
+        // Initialize OutputHandler for markdown rendering
+        const outputHandler = new OutputHandler(output);
+
+        // Example query selector
+        exampleSelect.addEventListener('change', () => {
+            if (exampleSelect.value) {
+                inputText.value = exampleSelect.value;
+                exampleSelect.value = '';
+                updateTokenCount();
+                inputText.focus();
+            }
+        });
+
+        function updateTokenCount() {
+            const words = inputText.value.trim().split(/\s+/).filter(Boolean).length;
+            const tokens = Math.ceil(words / 0.75);
+            tokenCounter.textContent = `Tokens: ${tokens}/4096`;
+
+            if (tokens > 3600) {
+                tokenCounter.className = 'token-counter danger';
+            } else if (tokens > 3072) {
+                tokenCounter.className = 'token-counter warning';
+            } else {
+                tokenCounter.className = 'token-counter';
+            }
+        }
+
+        inputText.addEventListener('input', updateTokenCount);
+
+        askBtn.addEventListener('click', async () => {
+            const query = inputText.value.trim();
+            if (!query) {
+                alert('Please describe what you want to do with Git.');
+                return;
+            }
+            outputHandler.clear();
+            output.textContent = '';
+            outputCard.style.display = 'block';
+            waitingMessage.style.display = 'block';
+            aiLoadingIndicator.style.display = 'flex';
+            askBtn.disabled = true;
+            askSpinner.classList.remove('d-none');
+            metrics.textContent = '⏳ Initializing...';
+
+            const request = {
+                query: query
+            };
+
+            try {
+                new StreamHandler('/api/git/assist', request, {
+                    onToken: (token) => {
+                        waitingMessage.style.display = 'none';
+                        outputHandler.appendToken(token);
+                    },
+
+                    onFirstToken: (latency) => {
+                        metrics.textContent = `⚡ First token: ${latency.toFixed(2)}s`;
+                    },
+
+                    onStatus: (status) => {
+                        metrics.textContent = status;
+                    },
+
+                    onComplete: (message) => {
+                        aiLoadingIndicator.style.display = 'none';
+                        askBtn.disabled = false;
+                        askSpinner.classList.add('d-none');
+                        metrics.textContent = `${metrics.textContent} | ✅ Complete`;
+                        output.style.borderLeft = '3px solid var(--bs-success)';
+                        setTimeout(() => output.style.borderLeft = '', 1000);
+                    },
+
+                    onError: (error) => {
+                        console.error('Git Assistant error:', error);
+                        waitingMessage.style.display = 'none';
+                        aiLoadingIndicator.style.display = 'none';
+                        outputHandler.setError(`❌ ${error}`);
+                        askBtn.disabled = false;
+                        askSpinner.classList.add('d-none');
+                        metrics.textContent = '❌ Error occurred';
+                    }
+                });
+            } catch (err) {
+                console.error('Failed to start Git Assistant:', err);
+                waitingMessage.style.display = 'none';
+                aiLoadingIndicator.style.display = 'none';
+                metrics.textContent = '❌ Failed to start';
+                askBtn.disabled = false;
+                askSpinner.classList.add('d-none');
+            }
+        });
+
+        document.getElementById('copyBtn').onclick = async () => {
+            try {
+                const rawText = outputHandler.getRawText();
+                await navigator.clipboard.writeText(rawText);
+                const btn = document.getElementById('copyBtn');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(() => btn.innerHTML = original, 1500);
+            } catch (err) {
+                alert('Failed to copy: ' + err.message);
+            }
+        };
+
+        document.getElementById('clearBtn').onclick = () => {
+            if (outputHandler.getRawText() && confirm('Clear all text?')) {
+                inputText.value = '';
+                outputCard.style.display = 'none';
+                updateTokenCount();
+            }
+        };
+
+        // Allow Enter to submit (Shift+Enter for new line)
+        inputText.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                askBtn.click();
+            }
+        });
+    </script>
+}

@@ -1,0 +1,244 @@
+@{
+    ViewData["Title"] = "Clean Text - WriteCraftAI";
+}
+
+@section Styles {
+    <style>
+        .token-counter {
+            font-size: 0.875rem;
+            color: var(--bs-secondary-color);
+        }
+
+        .token-counter.warning {
+            color: var(--bs-warning) !important;
+        }
+
+        .token-counter.danger {
+            color: var(--bs-danger) !important;
+        }
+
+        .output-area {
+            min-height: 200px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .metrics {
+            font-size: 0.75rem;
+            color: var(--bs-secondary);
+        }
+    </style>
+}
+
+<div class="row">
+    <div class="col-12">
+
+        <!-- Feature Description -->
+        <div class="alert border-0 mb-4 feature-description-box">
+            <div class="d-flex align-items-start gap-3">
+                <i class="bi bi-magic fs-4 text-primary"></i>
+                <div>
+                    <h6 class="mb-1 fw-semibold text-light">Text Cleanup Tool</h6>
+                    <small class="text-secondary">Clean up messy, unclear, or poorly formatted text. Perfect for fixing copied text with formatting issues, improving readability, removing unnecessary characters, and standardizing formatting while preserving the original meaning.</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Card -->
+        <div class="card mb-4 border-slate-700 bg-slate-800">
+            <div class="card-header bg-slate-900 border-bottom border-slate-700">
+                <h5 class="mb-0 text-indigo-400">
+                    <i class="bi bi-input-cursor-text me-2"></i>Text to Clean
+                </h5>
+            </div>
+            <div class="card-body">
+                <textarea id="inputText" class="form-control bg-slate-900 text-slate-100 border-slate-600"
+                          rows="6" placeholder="Paste messy or unclear text here for cleaning..."></textarea>
+
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                    <span id="tokenCounter" class="token-counter">Tokens: 0/4096</span>
+
+                    <div class="d-flex gap-2">
+                        <button id="cleanBtn" class="btn btn-primary btn-sm fw-semibold">
+                            <span class="d-none spinner-border spinner-border-sm me-1" id="cleanSpinner"></span>
+                            <i class="bi bi-stars"></i> Clean & Improve
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Card -->
+        <div class="card border-slate-700 bg-slate-800" id="outputCard" style="display: none;">
+            <div class="card-header bg-slate-900 border-bottom border-slate-700 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-indigo-400">
+                    <i class="bi bi-sparkles me-2"></i>Cleaned Text
+                </h5>
+                <small id="metrics" class="metrics"></small>
+            </div>
+            <div id="aiLoadingIndicator" class="ai-loading-indicator" style="display: none;">
+                <span class="spinner-border text-primary" role="status"></span>
+                <span>AI is processing...</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="waitingMessage" class="waiting-text" style="display: none;">
+                    Cleaning and improving your text<span class="waiting-dots"></span>
+                </div>
+                <div id="output" class="output-area m-0 p-3"></div>
+            </div>
+            <div class="card-footer bg-slate-900 border-top border-slate-700">
+                <div class="d-flex gap-2 justify-content-end">
+                    <button id="copyBtn" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                    <button id="clearBtn" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-trash"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/stream-handler.js" asp-append-version="true"></script>
+    <script>
+        const inputText = document.getElementById('inputText');
+        const tokenCounter = document.getElementById('tokenCounter');
+        const cleanBtn = document.getElementById('cleanBtn');
+        const cleanSpinner = document.getElementById('cleanSpinner');
+        const outputCard = document.getElementById('outputCard');
+        const output = document.getElementById('output');
+        const metrics = document.getElementById('metrics');
+        const waitingMessage = document.getElementById('waitingMessage');
+        const aiLoadingIndicator = document.getElementById('aiLoadingIndicator');
+
+        // Initialize OutputHandler for markdown rendering
+        const outputHandler = new OutputHandler(output);
+        console.log('[CleanText] OutputHandler initialized');
+
+        function updateTokenCount() {
+            const words = inputText.value.trim().split(/\s+/).filter(Boolean).length;
+            const tokens = Math.ceil(words / 0.75);
+            tokenCounter.textContent = `Tokens: ${tokens}/4096`;
+
+            if (tokens > 3600) {
+                tokenCounter.className = 'token-counter danger';
+            } else if (tokens > 3072) {
+                tokenCounter.className = 'token-counter warning';
+            } else {
+                tokenCounter.className = 'token-counter';
+            }
+        }
+
+        inputText.addEventListener('input', updateTokenCount);
+
+            cleanBtn.addEventListener('click', async () => {
+        const text = inputText.value.trim();
+        if (!text) {
+            alert('Please enter text to clean.');
+            return;
+        }
+
+        console.log('[CleanText] Starting clean request');
+        outputHandler.clear();
+        outputCard.style.display = 'block';
+        waitingMessage.style.display = 'block';
+        aiLoadingIndicator.style.display = 'flex';
+        cleanBtn.disabled = true;
+        cleanSpinner.classList.remove('d-none');
+        metrics.textContent = '⏳ Initializing...';
+
+        const request = { text };
+
+        try {
+            new StreamHandler('/api/cleantext/clean', request, {
+                onToken: (token) => {
+                    // DEBUG: Log every token
+                    console.log('[CleanText] Token received:', JSON.stringify(token));
+
+                    waitingMessage.style.display = 'none';
+                    outputHandler.appendToken(token);
+
+                    // DEBUG: Check accumulated text
+                    const currentText = outputHandler.getRawText();
+                    if (currentText.length % 50 === 0) {
+                        console.log('[CleanText] Current text length:', currentText.length);
+                        console.log('[CleanText] Has newlines:', currentText.includes('\n'));
+                        console.log('[CleanText] Newline count:', (currentText.match(/\n/g) || []).length);
+                    }
+                },
+
+                onFirstToken: (latency) => {
+                    console.log('[CleanText] First token received:', latency);
+                    metrics.textContent = `⚡ First token: ${latency.toFixed(2)}s`;
+                },
+
+                onStatus: (status) => {
+                    console.log('[CleanText] Status:', status);
+                    metrics.textContent = status;
+                },
+
+                onComplete: (message) => {
+                    console.log('[CleanText] Complete:', message);
+
+                    // DEBUG: Final check
+                    const finalText = outputHandler.getRawText();
+                    console.log('[CleanText] === FINAL TEXT ===');
+                    console.log(finalText);
+                    console.log('[CleanText] === END FINAL TEXT ===');
+                    console.log('[CleanText] Total length:', finalText.length);
+                    console.log('[CleanText] Newline count:', (finalText.match(/\n/g) || []).length);
+
+                    aiLoadingIndicator.style.display = 'none';
+                    cleanBtn.disabled = false;
+                    cleanSpinner.classList.add('d-none');
+                    metrics.textContent = `${metrics.textContent} | ✅ Complete`;
+                },
+
+                onError: (error) => {
+                    console.error('[CleanText] Error:', error);
+                    waitingMessage.style.display = 'none';
+                    aiLoadingIndicator.style.display = 'none';
+                    outputHandler.setError(`❌ ${error}`);
+                    cleanBtn.disabled = false;
+                    cleanSpinner.classList.add('d-none');
+                    metrics.textContent = '❌ Error occurred';
+                }
+            });
+        } catch (err) {
+            console.error('[CleanText] Failed to start:', err);
+            waitingMessage.style.display = 'none';
+            aiLoadingIndicator.style.display = 'none';
+            metrics.textContent = '❌ Failed to start cleaning';
+            cleanBtn.disabled = false;
+            cleanSpinner.classList.add('d-none');
+        }
+    });
+
+        document.getElementById('copyBtn').onclick = async () => {
+            try {
+                const rawText = outputHandler.getRawText();
+                console.log('[CleanText] Copying text, length:', rawText.length);
+                await navigator.clipboard.writeText(rawText);
+                const btn = document.getElementById('copyBtn');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(() => btn.innerHTML = original, 1500);
+            } catch (err) {
+                alert('Failed to copy: ' + err.message);
+            }
+        };
+
+        document.getElementById('clearBtn').onclick = () => {
+            if (outputHandler.getRawText() && confirm('Clear all text?')) {
+                inputText.value = '';
+                outputCard.style.display = 'none';
+                updateTokenCount();
+            }
+        };
+    </script>
+}

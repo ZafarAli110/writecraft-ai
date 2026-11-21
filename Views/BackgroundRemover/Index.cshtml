@@ -1,0 +1,620 @@
+@{
+    ViewData["Title"] = "Background Remover";
+}
+
+<div class="container-fluid px-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <div class="feature-icon">
+                    <i class="bi bi-scissors fs-3"></i>
+                </div>
+                <div>
+                    <h2 class="mb-0 fw-bold">Background Remover</h2>
+                    <p class="text-muted mb-0">Remove backgrounds from images using AI</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Description -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert border-0 feature-description-box">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="bi bi-person-bounding-box fs-4 text-primary"></i>
+                    <div>
+                        <h6 class="mb-1 fw-semibold text-light">Automatic Background Removal</h6>
+                        <small class="text-secondary">Remove backgrounds from photos automatically using the RMBG model. Perfect for product photos, profile pictures, and creating transparent PNGs. Upload any image and get professional results with customizable background colors - all processed privately in your browser.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Status Banner -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div id="modelStatusBanner" class="alert alert-info d-flex align-items-center justify-content-between" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <div>
+                        <strong>First Time Setup:</strong> The AI model (~180MB) will be downloaded on first use. 
+                        It's cached in your browser's IndexedDB storage for instant future access.
+                        <a href="/Setup" class="alert-link ms-2">Pre-download in Setup →</a>
+                    </div>
+                </div>
+            </div>
+            <div id="modelCachedBanner" class="alert alert-success d-flex align-items-center justify-content-between d-none" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <div>
+                        <strong>Ready!</strong> AI model is cached in your browser's IndexedDB storage.
+                        <span class="text-muted ms-2" id="cacheInfo"></span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-danger btn-sm" id="clearCacheBtn" title="Clear cached model">
+                    <i class="bi bi-trash me-1"></i>Clear Cache
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Upload Section -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-upload me-2"></i>Upload Image
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Drop Zone -->
+                    <div id="dropZone" class="drop-zone">
+                        <div class="drop-zone-content">
+                            <i class="bi bi-cloud-arrow-up-fill drop-zone-icon"></i>
+                            <h5 class="mb-2">Drop your image here</h5>
+                            <p class="text-muted mb-3">or click to browse</p>
+                            <button type="button" class="btn btn-primary" id="browseBtn">
+                                <i class="bi bi-folder2-open me-2"></i>Browse Files
+                            </button>
+                            <input type="file" id="imageInput" accept="image/*" class="d-none">
+                        </div>
+                        <p class="drop-zone-hint">Supports: JPG, PNG, WebP (Max 10MB)</p>
+                    </div>
+
+                    <!-- Example Button -->
+                    <div class="text-center mt-3">
+                        <button type="button" class="btn btn-outline-secondary" id="exampleBtn">
+                            <i class="bi bi-image me-2"></i>Try with Example Image
+                        </button>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div id="previewSection" class="mt-4 d-none">
+                        <h6 class="mb-3"><i class="bi bi-eye me-2"></i>Original Image</h6>
+                        <div class="image-preview-container">
+                            <img id="originalPreview" src="" alt="Original" class="img-fluid rounded">
+                        </div>
+                        <!-- Process Button -->
+                        <div class="text-center mt-3">
+                            <button type="button" class="btn btn-success btn-lg" id="processBtn">
+                                <i class="bi bi-magic me-2"></i>Remove Background
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Section -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-image me-2"></i>Result
+                    </h5>
+                    <div id="downloadBtns" class="d-none">
+                        <button type="button" class="btn btn-success btn-sm" id="downloadBtn">
+                            <i class="bi bi-download me-2"></i>Download PNG
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Initial State -->
+                    <div id="resultPlaceholder" class="result-placeholder">
+                        <i class="bi bi-image-alt result-placeholder-icon"></i>
+                        <p class="text-muted">Upload an image and click "Remove Background"</p>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div id="processingSection" class="d-none">
+                        <div class="processing-container">
+                            <div class="processing-spinner">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Processing...</span>
+                                </div>
+                            </div>
+                            <h5 class="mt-3 mb-2" id="processingTitle">Processing...</h5>
+                            <p class="text-muted mb-3" id="processingStatus">Initializing AI model...</p>
+                            
+                            <!-- Progress Bar -->
+                            <div class="progress-container">
+                                <div class="progress" style="height: 8px;">
+                                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <small class="text-muted mt-1 d-block" id="progressText">0%</small>
+                            </div>
+
+                            <!-- Download Size Info (shown during model download) -->
+                            <div id="downloadInfo" class="mt-2 d-none">
+                                <small class="text-muted" id="downloadSizeText">Preparing download...</small>
+                            </div>
+
+                            <!-- Processing Stages -->
+                            <div class="processing-stages mt-4">
+                                <div class="stage" id="stageLoad">
+                                    <i class="bi bi-circle stage-icon"></i>
+                                    <span>Loading AI Model</span>
+                                    <small class="text-muted ms-2" id="stageLoadInfo"></small>
+                                </div>
+                                <div class="stage" id="stageProcess">
+                                    <i class="bi bi-circle stage-icon"></i>
+                                    <span>Processing Image</span>
+                                </div>
+                                <div class="stage" id="stageRender">
+                                    <i class="bi bi-circle stage-icon"></i>
+                                    <span>Rendering Result</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Result Display -->
+                    <div id="resultSection" class="d-none">
+                        <div class="result-image-container">
+                            <canvas id="resultCanvas" class="result-canvas"></canvas>
+                        </div>
+                        <div class="result-actions mt-3">
+                            <button type="button" class="btn btn-outline-primary" id="newImageBtn">
+                                <i class="bi bi-plus-circle me-2"></i>Process Another
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="errorSection" class="d-none">
+                        <div class="error-container">
+                            <i class="bi bi-exclamation-triangle-fill error-icon"></i>
+                            <h5 class="mt-3">Processing Failed</h5>
+                            <p class="text-muted" id="errorMessage">An error occurred while processing the image.</p>
+                            <button type="button" class="btn btn-outline-primary mt-2" id="retryBtn">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Try Again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card info-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-shield-check info-item-icon text-success"></i>
+                                <div>
+                                    <h6 class="mb-1">Privacy First</h6>
+                                    <small class="text-muted">All processing happens in your browser. Images never leave your device.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-lightning-charge info-item-icon text-warning"></i>
+                                <div>
+                                    <h6 class="mb-1">AI Powered</h6>
+                                    <small class="text-muted">Uses advanced AI model (RMBG-1.4) for accurate background removal.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-gpu-card info-item-icon text-primary"></i>
+                                <div>
+                                    <h6 class="mb-1">GPU Accelerated</h6>
+                                    <small class="text-muted">Leverages WebGPU for faster processing when available.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-hdd info-item-icon text-info"></i>
+                                <div>
+                                    <h6 class="mb-1">Cached in IndexedDB</h6>
+                                    <small class="text-muted">Model stored in browser's IndexedDB. Clear via button above or browser settings.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How to Clear Cache Info -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body py-3">
+                    <details>
+                        <summary class="fw-semibold cursor-pointer">
+                            <i class="bi bi-question-circle me-2"></i>How to manually clear cached models
+                        </summary>
+                        <div class="mt-3 ps-4">
+                            <p class="mb-2 text-muted">The AI model is stored in your browser's IndexedDB storage. To clear it manually:</p>
+                            <ol class="text-muted mb-0">
+                                <li><strong>Chrome/Edge:</strong> F12 → Application → Storage → IndexedDB → Delete "transformers-cache"</li>
+                                <li><strong>Firefox:</strong> F12 → Storage → Indexed DB → Delete "transformers-cache"</li>
+                                <li><strong>Safari:</strong> Develop → Show Web Inspector → Storage → Indexed Databases</li>
+                                <li><strong>Or:</strong> Clear all site data in browser settings</li>
+                            </ol>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="~/css/background-remover.css" asp-append-version="true" />
+
+<script type="module">
+    import { init, loadModel, processImage, renderResult, isModelCached, clearCache, getCacheSize } from '/js/background-remover.js';
+
+    // DOM Elements
+    const dropZone = document.getElementById('dropZone');
+    const browseBtn = document.getElementById('browseBtn');
+    const imageInput = document.getElementById('imageInput');
+    const exampleBtn = document.getElementById('exampleBtn');
+    const previewSection = document.getElementById('previewSection');
+    const originalPreview = document.getElementById('originalPreview');
+    const processBtn = document.getElementById('processBtn');
+    const resultPlaceholder = document.getElementById('resultPlaceholder');
+    const processingSection = document.getElementById('processingSection');
+    const resultSection = document.getElementById('resultSection');
+    const errorSection = document.getElementById('errorSection');
+    const downloadBtns = document.getElementById('downloadBtns');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const newImageBtn = document.getElementById('newImageBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const resultCanvas = document.getElementById('resultCanvas');
+    const modelStatusBanner = document.getElementById('modelStatusBanner');
+    const modelCachedBanner = document.getElementById('modelCachedBanner');
+    const cacheInfo = document.getElementById('cacheInfo');
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    const downloadInfo = document.getElementById('downloadInfo');
+    const downloadSizeText = document.getElementById('downloadSizeText');
+    const stageLoadInfo = document.getElementById('stageLoadInfo');
+    
+    // Progress elements
+    const processingTitle = document.getElementById('processingTitle');
+    const processingStatus = document.getElementById('processingStatus');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const stageLoad = document.getElementById('stageLoad');
+    const stageProcess = document.getElementById('stageProcess');
+    const stageRender = document.getElementById('stageRender');
+
+    let currentImageUrl = null;
+    let modelLoaded = false;
+    let maxProgressSeen = 0; // Track max progress to prevent going backward
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+        init();
+        setupEventListeners();
+        await checkModelCache();
+    });
+
+    async function checkModelCache() {
+        try {
+            const cached = await isModelCached();
+            if (cached) {
+                modelStatusBanner.classList.add('d-none');
+                modelCachedBanner.classList.remove('d-none');
+                
+                // Show cache size
+                const size = await getCacheSize();
+                if (size.usage > 0) {
+                    const usageMB = (size.usage / 1024 / 1024).toFixed(1);
+                    cacheInfo.textContent = `(~${usageMB} MB stored)`;
+                }
+            }
+        } catch (e) {
+            console.log('Could not check cache status');
+        }
+    }
+    
+    async function handleClearCache() {
+        if (!confirm('This will delete the cached AI model (~180MB). You will need to download it again on next use. Continue?')) {
+            return;
+        }
+        
+        clearCacheBtn.disabled = true;
+        clearCacheBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Clearing...';
+        
+        try {
+            await clearCache();
+            
+            // Reset UI
+            modelLoaded = false;
+            modelCachedBanner.classList.add('d-none');
+            modelStatusBanner.classList.remove('d-none');
+            
+            alert('Cache cleared successfully! The model will be re-downloaded on next use.');
+        } catch (e) {
+            alert('Failed to clear cache. Try clearing browser data manually.');
+        } finally {
+            clearCacheBtn.disabled = false;
+            clearCacheBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Clear Cache';
+        }
+    }
+
+    function setupEventListeners() {
+        // Browse button
+        browseBtn.addEventListener('click', () => imageInput.click());
+        
+        // Clear cache button
+        clearCacheBtn.addEventListener('click', handleClearCache);
+        
+        // File input
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Drag and drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Click on drop zone
+        dropZone.addEventListener('click', (e) => {
+            if (e.target !== browseBtn && !browseBtn.contains(e.target)) {
+                imageInput.click();
+            }
+        });
+
+        // Example button - just shows preview, doesn't process
+        exampleBtn.addEventListener('click', () => {
+            const exampleUrl = '/images/examples/portrait.jpg';
+            loadImageFromUrl(exampleUrl);
+        });
+
+        // Process button - user must click to start processing
+        processBtn.addEventListener('click', () => {
+            if (currentImageUrl) {
+                processCurrentImage();
+            }
+        });
+
+        // Download button
+        downloadBtn.addEventListener('click', downloadResult);
+
+        // New image button
+        newImageBtn.addEventListener('click', resetUI);
+
+        // Retry button
+        retryBtn.addEventListener('click', () => {
+            if (currentImageUrl) {
+                processCurrentImage();
+            }
+        });
+    }
+
+    function handleFile(file) {
+        if (!file.type.startsWith('image/')) {
+            showError('Please select a valid image file.');
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            showError('Image size must be less than 10MB.');
+            return;
+        }
+
+        currentImageUrl = URL.createObjectURL(file);
+        showPreview(currentImageUrl);
+        // Don't auto-process - wait for user to click Process button
+    }
+
+    function loadImageFromUrl(url) {
+        currentImageUrl = url;
+        showPreview(url);
+        // Don't auto-process - wait for user to click Process button
+    }
+
+    function showPreview(url) {
+        originalPreview.src = url;
+        previewSection.classList.remove('d-none');
+        // Reset result section when new image is loaded
+        resultSection.classList.add('d-none');
+        errorSection.classList.add('d-none');
+        downloadBtns.classList.add('d-none');
+        resultPlaceholder.classList.remove('d-none');
+    }
+
+    async function processCurrentImage() {
+        // Show processing UI
+        resultPlaceholder.classList.add('d-none');
+        resultSection.classList.add('d-none');
+        errorSection.classList.add('d-none');
+        downloadBtns.classList.add('d-none');
+        processingSection.classList.remove('d-none');
+
+        // Reset progress tracking
+        maxProgressSeen = 0;
+        resetStages();
+        updateProgress(0, 'Initializing...');
+
+        try {
+            // Load model if not loaded
+            if (!modelLoaded) {
+                setStageActive(stageLoad);
+                stageLoadInfo.textContent = '(first time download)';
+                downloadInfo.classList.remove('d-none');
+                updateProgress(2, 'Downloading AI model (one-time download)...');
+                
+                await loadModel((progress) => {
+                    if (progress.status === 'progress') {
+                        // Calculate progress that only moves forward
+                        const rawPercent = Math.round(progress.progress || 0);
+                        const scaledPercent = 2 + rawPercent * 0.58; // Scale to 2-60%
+                        
+                        // Only update if it's higher than what we've seen
+                        if (scaledPercent > maxProgressSeen) {
+                            maxProgressSeen = scaledPercent;
+                            updateProgress(scaledPercent, `Downloading model: ${rawPercent}%`);
+                        }
+                        
+                        // Show download size - only when we have valid values
+                        if (progress.loaded > 0 && progress.total > 0) {
+                            const loadedMB = (progress.loaded / 1024 / 1024).toFixed(1);
+                            const totalMB = (progress.total / 1024 / 1024).toFixed(1);
+                            // Only show if values are meaningful (not 0.0)
+                            if (parseFloat(totalMB) > 0) {
+                                downloadSizeText.textContent = `Downloaded: ${loadedMB} MB / ${totalMB} MB`;
+                            }
+                        }
+                    } else if (progress.status === 'ready') {
+                        maxProgressSeen = 65;
+                        updateProgress(65, progress.cached ? 'Model loaded from cache!' : 'Model downloaded!');
+                        downloadInfo.classList.add('d-none');
+                        
+                        // Update banners
+                        modelStatusBanner.classList.add('d-none');
+                        modelCachedBanner.classList.remove('d-none');
+                    }
+                });
+                
+                modelLoaded = true;
+                stageLoadInfo.textContent = '(cached)';
+                setStageComplete(stageLoad);
+            } else {
+                setStageComplete(stageLoad);
+                stageLoadInfo.textContent = '(cached)';
+                maxProgressSeen = 65;
+                updateProgress(65, 'Model ready (cached)');
+            }
+
+            // Process image
+            setStageActive(stageProcess);
+            maxProgressSeen = 70;
+            updateProgress(70, 'Processing image...');
+            
+            const result = await processImage(currentImageUrl);
+            
+            setStageComplete(stageProcess);
+            maxProgressSeen = 90;
+            updateProgress(90, 'Rendering result...');
+
+            // Render result
+            setStageActive(stageRender);
+            await renderResult(result, resultCanvas);
+            setStageComplete(stageRender);
+            updateProgress(100, 'Complete!');
+
+            // Show result
+            setTimeout(() => {
+                processingSection.classList.add('d-none');
+                resultSection.classList.remove('d-none');
+                downloadBtns.classList.remove('d-none');
+            }, 300);
+
+        } catch (error) {
+            console.error('Processing error:', error);
+            showError(error.message || 'An error occurred while processing the image.');
+        }
+    }
+
+    function updateProgress(percent, status) {
+        // Only allow progress to go forward
+        const displayPercent = Math.max(percent, maxProgressSeen);
+        progressBar.style.width = `${displayPercent}%`;
+        progressText.textContent = `${Math.round(displayPercent)}%`;
+        if (status) {
+            processingStatus.textContent = status;
+        }
+    }
+
+    function resetStages() {
+        [stageLoad, stageProcess, stageRender].forEach(stage => {
+            stage.classList.remove('active', 'complete');
+            stage.querySelector('.stage-icon').className = 'bi bi-circle stage-icon';
+        });
+        stageLoadInfo.textContent = '';
+        downloadInfo.classList.add('d-none');
+    }
+
+    function setStageActive(stage) {
+        stage.classList.add('active');
+        stage.querySelector('.stage-icon').className = 'bi bi-arrow-right-circle-fill stage-icon';
+    }
+
+    function setStageComplete(stage) {
+        stage.classList.remove('active');
+        stage.classList.add('complete');
+        stage.querySelector('.stage-icon').className = 'bi bi-check-circle-fill stage-icon';
+    }
+
+    function showError(message) {
+        processingSection.classList.add('d-none');
+        resultSection.classList.add('d-none');
+        resultPlaceholder.classList.add('d-none');
+        errorSection.classList.remove('d-none');
+        document.getElementById('errorMessage').textContent = message;
+    }
+
+    function downloadResult() {
+        const link = document.createElement('a');
+        link.download = 'background-removed.png';
+        link.href = resultCanvas.toDataURL('image/png');
+        link.click();
+    }
+
+    function resetUI() {
+        currentImageUrl = null;
+        imageInput.value = '';
+        previewSection.classList.add('d-none');
+        resultSection.classList.add('d-none');
+        errorSection.classList.add('d-none');
+        downloadBtns.classList.add('d-none');
+        processingSection.classList.add('d-none');
+        resultPlaceholder.classList.remove('d-none');
+        maxProgressSeen = 0;
+        resetStages();
+        updateProgress(0, 'Initializing...');
+    }
+</script>

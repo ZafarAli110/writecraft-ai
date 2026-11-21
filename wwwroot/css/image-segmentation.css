@@ -1,0 +1,273 @@
+/* Image Segmentation Styles */
+
+/* Feature Icon Purple Gradient */
+.bg-gradient-purple {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1) !important;
+}
+
+/* How It Works Card */
+.how-it-works-card {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(99, 102, 241, 0.05));
+    border: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    color: white;
+    border-radius: 50%;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+/* Upload Zone */
+.segmentation-upload-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 3rem 2rem;
+    border: 2px dashed rgba(139, 92, 246, 0.4);
+    border-radius: 12px;
+    margin: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(139, 92, 246, 0.02);
+    position: relative;
+}
+
+.segmentation-upload-zone:hover {
+    border-color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.05);
+}
+
+.segmentation-upload-zone.drag-over {
+    border-color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.1);
+    transform: scale(1.01);
+}
+
+.upload-content {
+    text-align: center;
+}
+
+.upload-icon {
+    font-size: 4rem;
+    color: #8b5cf6;
+    opacity: 0.7;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.upload-hint {
+    position: absolute;
+    bottom: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+    margin: 0;
+}
+
+/* Canvas Container */
+.segmentation-canvas-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    background: repeating-conic-gradient(#f0f0f0 0% 25%, transparent 0% 50%) 50% / 20px 20px;
+    overflow: hidden;
+}
+
+.image-wrapper {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    max-height: 500px;
+}
+
+.source-image {
+    display: block;
+    max-width: 100%;
+    max-height: 500px;
+    object-fit: contain;
+}
+
+.mask-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.points-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* Point Markers */
+.point-marker {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 12px;
+    animation: pointPop 0.2s ease-out;
+}
+
+.point-marker.positive {
+    background: #22c55e;
+    color: white;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.5);
+}
+
+.point-marker.negative {
+    background: #ef4444;
+    color: white;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes pointPop {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Point Indicators in Controls */
+.point-indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.point-indicator.point-positive {
+    background: #22c55e;
+}
+
+.point-indicator.point-negative {
+    background: #ef4444;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.loading-content {
+    text-align: center;
+}
+
+/* Info Card Small */
+.info-card-small {
+    background: rgba(139, 92, 246, 0.03);
+    border: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.info-card-small ul li::marker {
+    color: #8b5cf6;
+}
+
+/* ============================================
+   DARK THEME OVERRIDES
+   ============================================ */
+[data-theme="dark"] .how-it-works-card {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1));
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+[data-theme="dark"] .segmentation-upload-zone {
+    border-color: rgba(139, 92, 246, 0.5);
+    background: rgba(139, 92, 246, 0.05);
+}
+
+[data-theme="dark"] .segmentation-upload-zone:hover {
+    background: rgba(139, 92, 246, 0.1);
+}
+
+[data-theme="dark"] .segmentation-canvas-container {
+    background: repeating-conic-gradient(#2d3748 0% 25%, #1a202c 0% 50%) 50% / 20px 20px;
+}
+
+[data-theme="dark"] .loading-overlay {
+    background: rgba(30, 41, 59, 0.95);
+}
+
+[data-theme="dark"] .info-card-small {
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+@media (max-width: 991.98px) {
+    .segmentation-upload-zone {
+        min-height: 300px;
+        padding: 2rem 1rem;
+    }
+    
+    .upload-icon {
+        font-size: 3rem;
+    }
+    
+    .image-wrapper,
+    .source-image {
+        max-height: 350px;
+    }
+    
+    .step-item {
+        margin-bottom: 0.5rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .step-number {
+        width: 24px;
+        height: 24px;
+        min-width: 24px;
+        font-size: 0.75rem;
+    }
+    
+    .point-marker {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+    }
+}

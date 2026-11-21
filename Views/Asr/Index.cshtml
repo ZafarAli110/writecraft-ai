@@ -1,0 +1,543 @@
+@{
+    ViewData["Title"] = "Speech to Text - WriteCraftAI";
+}
+
+@section Styles {
+    <style>
+        .record-button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            padding: 2rem 0;
+        }
+        
+        .record-btn {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 4px solid rgba(99, 102, 241, 0.3);
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            font-size: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        }
+        
+        .record-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 30px rgba(99, 102, 241, 0.4);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+        
+        .record-btn.recording {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-color: rgba(239, 68, 68, 0.5);
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+            animation: pulse-recording 1.5s infinite;
+        }
+        
+        @@keyframes pulse-recording {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .record-hint {
+            color: var(--bs-secondary);
+            font-size: 0.85rem;
+        }
+        
+        .progress-stages {
+            margin: 1rem auto;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            max-width: 400px;
+        }
+
+        /* Light theme override: use semi-opaque white background */
+        [data-theme="light"] .progress-stages {
+            background: rgba(255, 255, 255, 0.7);
+            color: #0f172a; /* dark text for readability in light mode */
+        }
+        
+        .stage-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.4rem 0;
+            color: var(--bs-secondary);
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .stage-item.active {
+            color: var(--bs-warning);
+        }
+        
+        .stage-item.completed {
+            color: var(--bs-success);
+        }
+        
+        .stage-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .stage-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+        }
+        
+        @@keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .stage-time {
+            margin-left: auto;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--bs-info);
+        }
+        
+        .total-time {
+            margin-top: 0.25rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid var(--bs-border-color);
+            font-weight: 600;
+            color: var(--bs-success);
+        }
+        
+        .output-area {
+            min-height: 100px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        .metrics {
+            font-size: 0.75rem;
+            color: var(--bs-secondary);
+        }
+    </style>
+}
+
+<div class="row">
+    <div class="col-12">
+
+        <!-- Feature Description -->
+        <div class="alert border-0 mb-4 feature-description-box">
+            <div class="d-flex align-items-start gap-3">
+                <i class="bi bi-soundwave fs-4 text-primary"></i>
+                <div>
+                    <h6 class="mb-1 fw-semibold text-light">Voice-to-Text Transcription</h6>
+                    <small class="text-secondary">Convert spoken words to text using Whisper AI. Record up to 30 seconds of audio and get accurate transcriptions processed entirely on your device. Supports multiple languages and accents. Your audio never leaves your machine.</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recording Card -->
+        <div class="card mb-4 border-slate-700 bg-slate-800">
+            <div class="card-header bg-slate-900 border-bottom border-slate-700">
+                <h5 class="mb-0 text-indigo-400">
+                    <i class="bi bi-mic me-2"></i>Speech to Text
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-secondary text-center mb-0">Convert your voice to text instantly using local AI. Your audio never leaves your device.</p>
+                
+                <!-- Record Button -->
+                <div class="record-button-container">
+                    <button id="recordBtn" class="record-btn" title="Click to start recording">
+                        <i class="bi bi-mic-fill" id="recordIcon"></i>
+                    </button>
+                    <div id="recordHint" class="record-hint">Click to start recording</div>
+                    <audio id="audioPlayback" controls class="w-100" style="display: none; max-width: 400px;"></audio>
+                </div>
+                
+                <!-- Processing Progress -->
+                <div id="progressStages" class="progress-stages" style="display: none;">
+                    <div id="stageConvert" class="stage-item">
+                        <span class="stage-icon"><i class="bi bi-arrow-repeat"></i></span>
+                        <span>Converting audio</span>
+                        <span id="convertTime" class="stage-time"></span>
+                    </div>
+                    <div id="stageTranscribe" class="stage-item">
+                        <span class="stage-icon"><i class="bi bi-soundwave"></i></span>
+                        <span>Transcribing speech</span>
+                        <span id="transcribeTime" class="stage-time"></span>
+                    </div>
+                    <div id="totalTimeRow" class="stage-item total-time" style="display: none;">
+                        <span class="stage-icon"><i class="bi bi-clock-history"></i></span>
+                        <span>Total time</span>
+                        <span id="totalTime" class="stage-time"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transcription Result Card -->
+        <div id="transcriptionCard" class="card mb-4 border-slate-700 bg-slate-800" style="display: none;">
+            <div class="card-header bg-slate-900 border-bottom border-slate-700 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-indigo-400">
+                    <i class="bi bi-chat-quote me-2"></i>Transcription
+                </h5>
+                <small id="transcriptionMetrics" class="metrics"></small>
+            </div>
+            <div class="card-body p-0">
+                <div id="transcription" class="output-area m-0 p-3"></div>
+            </div>
+            <div class="card-footer bg-slate-900 border-top border-slate-700 d-flex justify-content-between align-items-center">
+                <button id="cleanBtn" class="btn btn-primary btn-sm">
+                    <span class="d-none spinner-border spinner-border-sm me-1" id="cleanSpinner"></span>
+                    <i class="bi bi-sparkles"></i> Clean & Format
+                </button>
+                <div class="d-flex gap-2">
+                    <button id="copyTranscriptionBtn" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                    <button id="clearTranscriptionBtn" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-trash"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cleaned Output Card -->
+        <div class="card border-slate-700 bg-slate-800" id="outputCard" style="display: none;">
+            <div class="card-header bg-slate-900 border-bottom border-slate-700 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-indigo-400">
+                    <i class="bi bi-sparkles me-2"></i>Cleaned Text
+                </h5>
+                <small id="cleanMetrics" class="metrics"></small>
+            </div>
+            <div id="aiLoadingIndicator" class="ai-loading-indicator" style="display: none;">
+                <span class="spinner-border text-primary" role="status"></span>
+                <span>AI is processing...</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="waitingMessage" class="waiting-text" style="display: none;">
+                    Cleaning and improving your text<span class="waiting-dots"></span>
+                </div>
+                <div id="output" class="output-area m-0 p-3"></div>
+            </div>
+            <div class="card-footer bg-slate-900 border-top border-slate-700">
+                <div class="d-flex gap-2 justify-content-end">
+                    <button id="copyCleanedBtn" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                    <button id="clearCleanedBtn" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-trash"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/stream-handler.js" asp-append-version="true"></script>
+    <script src="~/js/output-handler.js" asp-append-version="true"></script>
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let stream;
+        const maxRecordingTime = 30000;
+
+        // Initialize OutputHandler for markdown rendering (same as CleanText)
+        const transcriptionEl = document.getElementById('transcription');
+        const cleanedEl = document.getElementById('output');
+        const transcriptionHandler = new OutputHandler(transcriptionEl);
+        const cleanedHandler = new OutputHandler(cleanedEl);
+
+        // Recording logic
+        document.getElementById('recordBtn').onclick = async () => {
+            const btn = document.getElementById('recordBtn');
+            const icon = document.getElementById('recordIcon');
+            const hint = document.getElementById('recordHint');
+            
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                    mediaRecorder.onstop = processAudio;
+                    
+                    mediaRecorder.start();
+                    
+                    // UI updates
+                    btn.classList.add('recording');
+                    icon.className = 'bi bi-stop-fill';
+                    hint.textContent = 'Recording... Click to stop';
+                    
+                    // Auto-stop after max time
+                    setTimeout(() => {
+                        if (mediaRecorder && mediaRecorder.state === 'recording') {
+                            mediaRecorder.stop();
+                        }
+                    }, maxRecordingTime);
+                } catch (err) {
+                    hint.textContent = 'Microphone access denied';
+                }
+            } else {
+                mediaRecorder.stop();
+                stream.getTracks().forEach(track => track.stop());
+            }
+        };
+
+        async function processAudio() {
+            const btn = document.getElementById('recordBtn');
+            const icon = document.getElementById('recordIcon');
+            const hint = document.getElementById('recordHint');
+            
+            // Reset button
+            btn.classList.remove('recording');
+            icon.className = 'bi bi-mic-fill';
+            hint.textContent = 'Processing...';
+            
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
+            
+            // Show playback
+            const playback = document.getElementById('audioPlayback');
+            playback.src = URL.createObjectURL(audioBlob);
+            playback.style.display = 'block';
+            
+            // Show and reset progress
+            resetProgressStages();
+            document.getElementById('progressStages').style.display = 'block';
+            
+            const formData = new FormData();
+            formData.append('audio', audioFile);
+            
+            try {
+                const response = await fetch('/api/asr/transcribe-stream', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Transcription failed');
+                }
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                handleProgressEvent(JSON.parse(line.substring(6)));
+                            } catch (e) {}
+                        }
+                    }
+                }
+            } catch (ex) {
+                hint.textContent = `Error: ${ex.message}`;
+                setStageError('stageConvert');
+            }
+        }
+        
+        function resetProgressStages() {
+            ['stageConvert', 'stageTranscribe'].forEach(id => {
+                const el = document.getElementById(id);
+                el.classList.remove('active', 'completed', 'text-danger');
+                el.querySelector('.stage-icon').innerHTML = '<i class="bi bi-circle"></i>';
+            });
+            document.getElementById('convertTime').textContent = '';
+            document.getElementById('transcribeTime').textContent = '';
+            document.getElementById('totalTimeRow').style.display = 'none';
+        }
+        
+        function setStageActive(stageId) {
+            const el = document.getElementById(stageId);
+            el.classList.add('active');
+            el.querySelector('.stage-icon').innerHTML = '<div class="stage-spinner"></div>';
+        }
+        
+        function setStageCompleted(stageId, timeMs) {
+            const el = document.getElementById(stageId);
+            el.classList.remove('active');
+            el.classList.add('completed');
+            el.querySelector('.stage-icon').innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+            document.getElementById(stageId === 'stageConvert' ? 'convertTime' : 'transcribeTime').textContent = formatTime(timeMs);
+        }
+        
+        function setStageError(stageId) {
+            const el = document.getElementById(stageId);
+            el.classList.remove('active');
+            el.classList.add('text-danger');
+            el.querySelector('.stage-icon').innerHTML = '<i class="bi bi-x-circle-fill"></i>';
+        }
+        
+        function formatTime(ms) {
+            return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(2)}s`;
+        }
+        
+        function handleProgressEvent(data) {
+            const hint = document.getElementById('recordHint');
+            const metrics = document.getElementById('transcriptionMetrics');
+            
+            switch (data.stage) {
+                case 'converting':
+                    setStageActive('stageConvert');
+                    hint.textContent = 'Converting audio...';
+                    break;
+                    
+                case 'transcribing':
+                    if (data.timing?.conversionTime) setStageCompleted('stageConvert', data.timing.conversionTime);
+                    setStageActive('stageTranscribe');
+                    hint.textContent = 'Transcribing speech...';
+                    break;
+                    
+                case 'complete':
+                    if (data.timing?.conversionTime) setStageCompleted('stageConvert', data.timing.conversionTime);
+                    if (data.timing?.transcriptionTime) setStageCompleted('stageTranscribe', data.timing.transcriptionTime);
+                    if (data.timing) {
+                        const total = (data.timing.conversionTime || 0) + (data.timing.transcriptionTime || 0);
+                        document.getElementById('totalTime').textContent = formatTime(total);
+                        document.getElementById('totalTimeRow').style.display = 'flex';
+                        metrics.textContent = `✅ Completed in ${formatTime(total)}`;
+                    }
+                    hint.textContent = 'Click to record again';
+                    break;
+                    
+                case 'result':
+                    transcriptionHandler.setText(data.text);
+                    document.getElementById('transcriptionCard').style.display = 'block';
+                    break;
+                    
+                case 'error':
+                    hint.textContent = `Error: ${data.error}`;
+                    setStageError('stageConvert');
+                    break;
+            }
+        }
+
+        // Clean button with progress (matching CleanText view pattern)
+        document.getElementById('cleanBtn').onclick = async () => {
+            const rawText = transcriptionHandler.getRawText();
+            if (!rawText.trim()) return;
+            
+            const cleanBtn = document.getElementById('cleanBtn');
+            const cleanSpinner = document.getElementById('cleanSpinner');
+            const waitingMessage = document.getElementById('waitingMessage');
+            const aiLoadingIndicator = document.getElementById('aiLoadingIndicator');
+            const cleanMetrics = document.getElementById('cleanMetrics');
+            
+            cleanBtn.disabled = true;
+            cleanSpinner.classList.remove('d-none');
+            document.getElementById('outputCard').style.display = 'block';
+            waitingMessage.style.display = 'block';
+            aiLoadingIndicator.style.display = 'flex';
+            cleanMetrics.textContent = '⏳ Initializing...';
+            cleanedHandler.clear();
+            
+            try {
+                new StreamHandler('/api/cleantext/clean', { text: rawText }, {
+                    onToken: (token) => {
+                        waitingMessage.style.display = 'none';
+                        cleanedHandler.appendToken(token);
+                    },
+                    onFirstToken: (latency) => {
+                        cleanMetrics.textContent = `⚡ First token: ${latency.toFixed(2)}s`;
+                    },
+                    onStatus: (status) => {
+                        cleanMetrics.textContent = status;
+                    },
+                    onComplete: (message) => {
+                        aiLoadingIndicator.style.display = 'none';
+                        cleanBtn.disabled = false;
+                        cleanSpinner.classList.add('d-none');
+                        cleanMetrics.textContent = `${cleanMetrics.textContent} | ✅ Complete`;
+                    },
+                    onError: (error) => {
+                        waitingMessage.style.display = 'none';
+                        aiLoadingIndicator.style.display = 'none';
+                        cleanedHandler.setError(`❌ ${error}`);
+                        cleanBtn.disabled = false;
+                        cleanSpinner.classList.add('d-none');
+                        cleanMetrics.textContent = '❌ Error occurred';
+                    }
+                });
+            } catch (err) {
+                waitingMessage.style.display = 'none';
+                aiLoadingIndicator.style.display = 'none';
+                cleanMetrics.textContent = '❌ Failed to start cleaning';
+                cleanBtn.disabled = false;
+                cleanSpinner.classList.add('d-none');
+            }
+        };
+
+        // Copy transcription (same pattern as CleanText)
+        document.getElementById('copyTranscriptionBtn').onclick = async () => {
+            try {
+                const rawText = transcriptionHandler.getRawText();
+                await navigator.clipboard.writeText(rawText);
+                const btn = document.getElementById('copyTranscriptionBtn');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(() => btn.innerHTML = original, 1500);
+            } catch (err) {
+                alert('Failed to copy: ' + err.message);
+            }
+        };
+
+        // Clear transcription
+        document.getElementById('clearTranscriptionBtn').onclick = () => {
+            if (transcriptionHandler.getRawText() && confirm('Clear transcription?')) {
+                transcriptionHandler.clear();
+                document.getElementById('transcriptionCard').style.display = 'none';
+                document.getElementById('audioPlayback').style.display = 'none';
+                document.getElementById('progressStages').style.display = 'none';
+                document.getElementById('recordHint').textContent = 'Click to start recording';
+            }
+        };
+
+        // Copy cleaned text (same pattern as CleanText)
+        document.getElementById('copyCleanedBtn').onclick = async () => {
+            try {
+                const rawText = cleanedHandler.getRawText();
+                await navigator.clipboard.writeText(rawText);
+                const btn = document.getElementById('copyCleanedBtn');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(() => btn.innerHTML = original, 1500);
+            } catch (err) {
+                alert('Failed to copy: ' + err.message);
+            }
+        };
+
+        // Clear cleaned text
+        document.getElementById('clearCleanedBtn').onclick = () => {
+            if (cleanedHandler.getRawText() && confirm('Clear cleaned text?')) {
+                cleanedHandler.clear();
+                document.getElementById('outputCard').style.display = 'none';
+            }
+        };
+    </script>
+}

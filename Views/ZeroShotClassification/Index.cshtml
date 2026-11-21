@@ -1,0 +1,787 @@
+@{
+    ViewData["Title"] = "Text Classification";
+}
+
+<div class="container-fluid px-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <div class="feature-icon">
+                    <i class="bi bi-tags fs-3"></i>
+                </div>
+                <div>
+                    <h2 class="mb-0 fw-bold">Text Classification</h2>
+                    <p class="text-muted mb-0">Classify text into custom categories using AI</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Description -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert border-0 feature-description-box">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="bi bi-tags fs-4 text-primary"></i>
+                <div>
+                    <h6 class="mb-1 fw-semibold text-light">AI-Powered Text Classification</h6>
+                    <small class="text-secondary">Automatically categorize text into custom labels you define. Ideal for sentiment analysis, topic sorting, content filtering, and organizing text collections. Everything runs locally in your browser for complete privacy.</small>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Status Banner -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div id="modelStatusBanner" class="alert alert-info d-flex align-items-center justify-content-between" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <div>
+                        <strong>First Time Setup:</strong> The AI model (~22MB) will be downloaded on first use.
+                        It's cached in your browser's IndexedDB storage for instant future access.
+                        <a href="/Setup" class="alert-link ms-2">Pre-download in Setup →</a>
+                    </div>
+                </div>
+            </div>
+            <div id="modelCachedBanner" class="alert alert-success d-flex align-items-center justify-content-between d-none" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <div>
+                        <strong>Ready!</strong> AI model is cached in your browser's IndexedDB storage.
+                        <span class="text-muted ms-2" id="cacheInfo"></span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-danger btn-sm" id="clearCacheBtn" title="Clear cached model">
+                    <i class="bi bi-trash me-1"></i>Clear Cache
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card mb-4 border-slate-700 bg-slate-800">
+                <div class="card-header bg-slate-900 border-bottom border-slate-700">
+                    <h5 class="mb-0 text-indigo-400">
+                        <i class="bi bi-pencil me-2"></i>Input Text & Categories
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Categories Management -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-tag me-1"></i>Categories
+                        </label>
+                        <div id="categoriesContainer">
+                            <!-- Categories will be added here dynamically -->
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-outline-success btn-sm" id="addCategoryBtn">
+                                <i class="bi bi-plus-circle me-1"></i>Add Label
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm ms-2" id="removeCategoryBtn">
+                                <i class="bi bi-dash-circle me-1"></i>Remove Label
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm ms-2" id="clearCategoriesBtn">
+                                <i class="bi bi-x-circle me-1"></i>Clear All
+                            </button>
+                        </div>
+                        <div class="form-text text-muted">
+                            Create your own classification labels. The system will assign each text to the most relevant category with probability scores.
+                        </div>
+                    </div>
+
+                    <!-- Text Input -->
+                    <div class="mb-3">
+                        <label for="textInput" class="form-label fw-semibold">
+                            <i class="bi bi-file-text me-1"></i>Text to Classify
+                        </label>
+                        <textarea class="form-control bg-slate-900 text-slate-100 border-slate-600" id="textInput" rows="8"
+                                  placeholder="Paste or type the content to categorize. Each line is processed as a separate item."></textarea>
+                        <div class="form-text text-muted">
+                            Input the content to categorize. Each line is analyzed individually. For optimal performance, keep each entry between 1-500 characters.
+                        </div>
+                    </div>
+
+                    <!-- Example Selection -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-lightbulb me-1"></i>Example Datasets
+                        </label>
+                        <select class="form-select bg-slate-900 text-slate-100 border-slate-600" id="exampleSelect">
+                            <option value="">Choose an example...</option>
+                            <option value="Product Reviews">Product Reviews</option>
+                            <option value="Sentiment Analysis">Sentiment Analysis</option>
+                        </select>
+                    </div>
+
+                    <!-- Classify Button -->
+                    <div class="text-center">
+                        <button type="button" class="btn btn-success btn-lg" id="classifyBtn">
+                            <span class="d-none spinner-border spinner-border-sm me-1" id="classifySpinner"></span>
+                            <i class="bi bi-robot me-2"></i>Categorize Content
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-slate-700 bg-slate-800">
+                <div class="card-header bg-slate-900 border-bottom border-slate-700 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-indigo-400">
+                        <i class="bi bi-bar-chart me-2"></i>Classification Results
+                    </h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <small id="processingTimeText" class="text-muted d-none"></small>
+                        <div id="exportBtns" class="d-none">
+                            <button type="button" class="btn btn-success btn-sm" id="exportBtn">
+                                <i class="bi bi-download me-2"></i>Export Results
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    <!-- Initial State -->
+                    <div id="resultPlaceholder" class="result-placeholder">
+                        <i class="bi bi-bar-chart-alt result-placeholder-icon"></i>
+                        <p class="text-muted">Add your content and labels, then click "Categorize Content"</p>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div id="processingSection" class="d-none">
+                        <div class="processing-container">
+                            <div class="processing-spinner">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Processing...</span>
+                                </div>
+                            </div>
+                            <h5 class="mt-3 mb-2" id="processingTitle">Categorizing...</h5>
+                            <p class="text-muted mb-3" id="processingStatus">Loading AI model...</p>
+
+                            <!-- Progress Bar -->
+                            <div class="progress-container">
+                                <div class="progress" style="height: 8px;">
+                                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                                         role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <small class="text-muted mt-1 d-block" id="progressText">0%</small>
+                            </div>
+
+                            <!-- Download Size Info -->
+                            <div id="downloadInfo" class="mt-2 d-none">
+                                <small class="text-muted" id="downloadSizeText">Preparing download...</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Display -->
+                    <div id="resultSection" class="d-none">
+                        <div id="resultsContainer">
+                            <!-- Results will be displayed here -->
+                        </div>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="errorSection" class="d-none">
+                        <div class="error-container">
+                            <i class="bi bi-exclamation-triangle-fill error-icon"></i>
+                            <h5 class="mt-3">Classification Failed</h5>
+                            <p class="text-muted" id="errorMessage">An error occurred while categorizing the content.</p>
+                            <button type="button" class="btn btn-outline-primary mt-2" id="retryBtn">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Try Again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card info-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-shield-check info-item-icon text-success"></i>
+                                <div>
+                                    <h6 class="mb-1">Privacy First</h6>
+                                    <small class="text-muted">All text processing happens in your browser. No data is sent to external servers.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-lightning-charge info-item-icon text-warning"></i>
+                                <div>
+                                    <h6 class="mb-1">No Training Required</h6>
+                                    <small class="text-muted">Categorize content using any labels you choose, without needing pre-labeled training data.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-tags info-item-icon text-primary"></i>
+                                <div>
+                                    <h6 class="mb-1">Confidence Scoring</h6>
+                                    <small class="text-muted">Get probability scores for each classification to understand certainty levels.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-cpu info-item-icon text-info"></i>
+                                <div>
+                                    <h6 class="mb-1">Local Processing</h6>
+                                    <small class="text-muted">AI model runs entirely on your device for maximum speed and privacy.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="~/css/zero-shot-classification.css" asp-append-version="true" />
+
+<script type="module">
+    import { init, loadModel, classifyText, isModelCached, clearCache, getCacheSize } from '/js/zero-shot-classification.js';
+
+    // DOM Elements
+    const categoriesContainer = document.getElementById('categoriesContainer');
+    const addCategoryBtn = document.getElementById('addCategoryBtn');
+    const removeCategoryBtn = document.getElementById('removeCategoryBtn');
+    const clearCategoriesBtn = document.getElementById('clearCategoriesBtn');
+    const textInput = document.getElementById('textInput');
+    const exampleBtn = document.getElementById('exampleBtn');
+    const classifyBtn = document.getElementById('classifyBtn');
+    const classifySpinner = document.getElementById('classifySpinner');
+    const resultPlaceholder = document.getElementById('resultPlaceholder');
+    const processingSection = document.getElementById('processingSection');
+    const resultSection = document.getElementById('resultSection');
+    const errorSection = document.getElementById('errorSection');
+    const exportBtns = document.getElementById('exportBtns');
+    const exportBtn = document.getElementById('exportBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const processingTimeText = document.getElementById('processingTimeText');
+    const modelStatusBanner = document.getElementById('modelStatusBanner');
+    const modelCachedBanner = document.getElementById('modelCachedBanner');
+    const cacheInfo = document.getElementById('cacheInfo');
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    const downloadInfo = document.getElementById('downloadInfo');
+    const downloadSizeText = document.getElementById('downloadSizeText');
+
+    // Progress elements
+    const processingTitle = document.getElementById('processingTitle');
+    const processingStatus = document.getElementById('processingStatus');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+
+    let modelLoaded = false;
+    let maxProgressSeen = 0;
+    let processingStartTime = 0;
+
+    // Example data
+    const EXAMPLE_DATA = {
+        'Product Reviews': {
+            reviews: [
+                "The battery drains so fast! I can't even use it for a full day without charging. Very disappointing for the price.",
+                "Charging is a nightmare - the cable keeps disconnecting and it takes hours to charge fully.",
+                "This device overheats constantly, especially during video calls. It's uncomfortable to hold.",
+                "The phone gets extremely hot when playing games. I'm worried about long-term damage.",
+                "Build quality is terrible. The screen cracked from a small drop. Not worth the money.",
+                "Scratches appear easily on the frame. Feels cheap and poorly made.",
+                "Instagram crashes every time I try to post a story. The app is completely unusable.",
+                "Software updates break more features than they fix. Constant bugs and glitches.",
+                "The phone freezes randomly, especially when using social media apps.",
+                "Camera quality is decent but the interface is confusing and hard to navigate.",
+                "Overall good value but the battery life could be better.",
+                "Love the design but the software feels outdated and slow."
+            ].sort(() => Math.random() - 0.5),
+            categories: [
+                'Battery and charging problems',
+                'Overheating',
+                'Poor build quality',
+                'Social Media',
+                'Software Issues'
+            ]
+        },
+        'Sentiment Analysis': {
+            reviews: [
+                "I absolutely love this product! Best purchase I've ever made.",
+                "This is completely useless. Total waste of money.",
+                "It's decent for the price, nothing special though.",
+                "Outstanding quality and excellent customer support!",
+                "Worst experience ever. Never buying from this brand again.",
+                "Pretty good overall, meets my expectations.",
+                "Amazing features and user-friendly interface.",
+                "Terrible performance, crashes all the time.",
+                "Good value for money, would recommend to friends.",
+                "Disappointing build quality, feels cheap."
+            ].sort(() => Math.random() - 0.5),
+            categories: [
+                'Positive',
+                'Negative',
+                'Neutral'
+            ]
+        }
+    };
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+        init();
+        setupEventListeners();
+        loadExampleData('Product Reviews');
+        document.getElementById('exampleSelect').value = 'Product Reviews';
+        await checkModelCache();
+    });
+
+    async function checkModelCache() {
+        try {
+            const cached = await isModelCached();
+            if (cached) {
+                modelStatusBanner.classList.add('d-none');
+                modelCachedBanner.classList.remove('d-none');
+
+                // Show cache size
+                const size = await getCacheSize();
+                if (size.usage > 0) {
+                    const usageMB = (size.usage / 1024 / 1024).toFixed(1);
+                    cacheInfo.textContent = `(~${usageMB} MB stored)`;
+                }
+            }
+        } catch (e) {
+            console.log('Could not check cache status');
+        }
+    }
+
+    async function handleClearCache() {
+        if (!confirm('This will delete the cached AI model (~22MB). You will need to download it again on next use. Continue?')) {
+            return;
+        }
+
+        clearCacheBtn.disabled = true;
+        clearCacheBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Clearing...';
+
+        try {
+            await clearCache();
+
+            // Reset UI
+            modelLoaded = false;
+            modelCachedBanner.classList.add('d-none');
+            modelStatusBanner.classList.remove('d-none');
+
+            alert('Cache cleared successfully! The model will be re-downloaded on next use.');
+        } catch (e) {
+            alert('Failed to clear cache. Try clearing browser data manually.');
+        } finally {
+            clearCacheBtn.disabled = false;
+            clearCacheBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Clear Cache';
+        }
+    }
+
+    function setupEventListeners() {
+        // Clear cache button
+        clearCacheBtn.addEventListener('click', handleClearCache);
+
+        // Category management buttons
+        addCategoryBtn.addEventListener('click', () => addCategory());
+        removeCategoryBtn.addEventListener('click', removeCategory);
+        clearCategoriesBtn.addEventListener('click', clearCategories);
+
+        // Example select
+        exampleSelect.addEventListener('change', loadSelectedExample);
+
+        // Text input change to reset example select
+        textInput.addEventListener('input', () => {
+            const currentText = textInput.value.trim();
+            const productReviewsText = EXAMPLE_DATA['Product Reviews'].reviews.join('\n');
+            const sentimentText = EXAMPLE_DATA['Sentiment Analysis'].reviews.join('\n');
+            if (currentText !== productReviewsText && currentText !== sentimentText) {
+                exampleSelect.value = '';
+            }
+        });
+
+        // Classify button
+        classifyBtn.addEventListener('click', () => {
+            const categories = getCategories();
+            if (textInput.value.trim() && categories.length > 0) {
+                classifyCurrentText();
+            } else {
+                alert('Please enter both text and at least one category.');
+            }
+        });
+
+        // Export button
+        exportBtn.addEventListener('click', exportResults);
+
+        // Retry button
+        retryBtn.addEventListener('click', () => {
+            const categories = getCategories();
+            if (textInput.value.trim() && categories.length > 0) {
+                classifyCurrentText();
+            }
+        });
+    }
+
+    function loadExampleData(exampleKey) {
+        const data = EXAMPLE_DATA[exampleKey];
+        if (data) {
+            clearCategories();
+            data.categories.forEach(title => addCategory(title));
+            textInput.value = data.reviews.join('\n');
+        }
+    }
+
+    function addCategory(title = 'New Label') {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'input-group mb-2';
+        categoryDiv.innerHTML = `
+            <input type="text" class="form-control category-input" value="${title}" placeholder="Label name">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-category-btn" title="Remove label">
+                <i class="bi bi-x"></i>
+            </button>
+        `;
+        categoriesContainer.appendChild(categoryDiv);
+
+        // Add event listener to remove button
+        categoryDiv.querySelector('.remove-category-btn').addEventListener('click', () => {
+            categoryDiv.remove();
+        });
+
+        updateCategoryButtons();
+    }
+
+    function removeCategory() {
+        const categories = categoriesContainer.querySelectorAll('.input-group');
+        if (categories.length > 1) {
+            categories[categories.length - 1].remove();
+        }
+        updateCategoryButtons();
+    }
+
+    function clearCategories() {
+        categoriesContainer.innerHTML = '';
+        updateCategoryButtons();
+    }
+
+    function getCategories() {
+        return Array.from(categoriesContainer.querySelectorAll('.category-input')).map(input => input.value.trim()).filter(val => val);
+    }
+
+    function updateCategoryButtons() {
+        const categoryCount = categoriesContainer.querySelectorAll('.input-group').length;
+        removeCategoryBtn.disabled = categoryCount <= 1;
+    }
+
+    function loadSelectedExample() {
+        const selected = document.getElementById('exampleSelect').value;
+        if (selected && EXAMPLE_DATA[selected]) {
+            loadExampleData(selected);
+        }
+    }
+
+    async function classifyCurrentText() {
+        // Show processing UI
+        resultPlaceholder.classList.add('d-none');
+        resultSection.classList.add('d-none');
+        errorSection.classList.add('d-none');
+        exportBtns.classList.add('d-none');
+        processingSection.classList.remove('d-none');
+
+        // Disable button and show spinner
+        classifyBtn.disabled = true;
+        classifySpinner.classList.remove('d-none');
+
+        // Reset progress tracking
+        maxProgressSeen = 0;
+        processingStartTime = Date.now();
+        processingTimeText.classList.add('d-none');
+        updateProgress(0, 'Initializing...');
+
+        try {
+            // Load model if not loaded
+            if (!modelLoaded) {
+                downloadInfo.classList.remove('d-none');
+                updateProgress(2, 'Downloading AI model (one-time download)...');
+
+                await loadModel((progress) => {
+                    if (progress.status === 'progress') {
+                        const rawPercent = Math.round(progress.progress || 0);
+                        const scaledPercent = 2 + rawPercent * 0.58;
+
+                        if (scaledPercent > maxProgressSeen) {
+                            maxProgressSeen = scaledPercent;
+                            updateProgress(scaledPercent, `Downloading model: ${rawPercent}%`);
+                        }
+
+                        if (progress.loaded > 0 && progress.total > 0) {
+                            const loadedMB = (progress.loaded / 1024 / 1024).toFixed(1);
+                            const totalMB = (progress.total / 1024 / 1024).toFixed(1);
+                            if (parseFloat(totalMB) > 0) {
+                                downloadSizeText.textContent = `Downloaded: ${loadedMB} MB / ${totalMB} MB`;
+                            }
+                        }
+                    } else if (progress.status === 'ready') {
+                        maxProgressSeen = 65;
+                        updateProgress(65, progress.cached ? 'Model loaded from cache!' : 'Model downloaded!');
+                        downloadInfo.classList.add('d-none');
+
+                        // Update banners
+                        modelStatusBanner.classList.add('d-none');
+                        modelCachedBanner.classList.remove('d-none');
+                    }
+                });
+
+                modelLoaded = true;
+            } else {
+                maxProgressSeen = 65;
+                updateProgress(65, 'Model ready (cached)');
+            }
+
+            // Get input
+            const text = textInput.value.trim();
+            const categories = getCategories();
+
+            if (categories.length === 0) {
+                throw new Error('Please enter at least one category.');
+            }
+
+            // Process text
+            maxProgressSeen = 70;
+            updateProgress(70, 'Classifying text...');
+
+            const results = await classifyText(text, categories);
+
+            maxProgressSeen = 90;
+            updateProgress(90, 'Rendering results...');
+
+            // Display results
+            displayResults(results, categories);
+
+            updateProgress(100, 'Complete!');
+
+            // Calculate processing time
+            const processingTime = ((Date.now() - processingStartTime) / 1000).toFixed(1);
+
+            // Show result
+            setTimeout(() => {
+                processingSection.classList.add('d-none');
+                resultSection.classList.remove('d-none');
+                exportBtns.classList.remove('d-none');
+
+                // Enable button and hide spinner
+                classifyBtn.disabled = false;
+                classifySpinner.classList.add('d-none');
+
+                // Show processing time
+                processingTimeText.textContent = `Completed in ${processingTime}s`;
+                processingTimeText.classList.remove('d-none');
+            }, 300);
+
+        } catch (error) {
+            console.error('Classification error:', error);
+            showError(error.message || 'An error occurred while classifying the text.');
+        }
+    }
+
+    function displayResults(results, categories) {
+        resultsContainer.innerHTML = '';
+
+        // Calculate aggregate results
+        const categoryCounts = {};
+        categories.forEach(cat => categoryCounts[cat] = 0);
+
+        results.forEach(result => {
+            const bestLabel = result.labels.reduce((best, current) =>
+                current.score > best.score ? current : best
+            );
+            if (bestLabel.score > 0.5 && categoryCounts[bestLabel.label] !== undefined) {
+                categoryCounts[bestLabel.label]++;
+            } else if (categoryCounts['Other'] !== undefined) {
+                categoryCounts['Other']++;
+            }
+        });
+
+        const totalItems = results.length;
+        const aggregateData = categories.map(cat => ({
+            category: cat,
+            count: categoryCounts[cat] || 0,
+            percentage: totalItems > 0 ? ((categoryCounts[cat] || 0) / totalItems * 100).toFixed(1) : 0
+        })).sort((a, b) => parseFloat(b.percentage) - parseFloat(a.percentage));
+
+        // Display aggregate results with chart
+        const aggregateDiv = document.createElement('div');
+        aggregateDiv.className = 'mb-4 p-3 border rounded';
+        aggregateDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+
+        const aggregateTitle = document.createElement('div');
+        aggregateTitle.className = 'mb-3';
+        aggregateTitle.innerHTML = '<strong>Overall Results:</strong>';
+        aggregateDiv.appendChild(aggregateTitle);
+
+        // Create chart container
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'classification-chart mb-3';
+
+        aggregateData.forEach((item, index) => {
+            const chartItem = document.createElement('div');
+            chartItem.className = 'chart-item mb-3';
+
+            // Category label and percentage
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'd-flex justify-content-between align-items-center mb-1';
+            labelDiv.innerHTML = `
+                <span class="chart-label">${item.category}</span>
+                <span class="chart-percentage">${item.percentage}% (${item.count} items)</span>
+            `;
+
+            // Progress bar
+            const progressDiv = document.createElement('div');
+            progressDiv.className = 'chart-bar-container';
+            progressDiv.innerHTML = `
+                <div class="chart-bar" style="width: ${item.percentage}%"></div>
+            `;
+
+            chartItem.appendChild(labelDiv);
+            chartItem.appendChild(progressDiv);
+            chartContainer.appendChild(chartItem);
+        });
+
+        aggregateDiv.appendChild(chartContainer);
+
+        resultsContainer.appendChild(aggregateDiv);
+
+        // Display individual results
+        results.forEach((result, index) => {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'mb-4 p-3 border rounded individual-result';
+            resultDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.02)';
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'mb-3';
+            textDiv.innerHTML = `<strong class="text-primary">Item ${index + 1}:</strong> <span class="result-text">${result.text}</span>`;
+
+            const labelsDiv = document.createElement('div');
+            labelsDiv.className = 'classification-results';
+
+            const sortedLabels = result.labels.sort((a, b) => b.score - a.score);
+
+            // Create mini chart for individual results
+            const miniChart = document.createElement('div');
+            miniChart.className = 'mini-chart mb-2';
+
+            sortedLabels.forEach(label => {
+                const percentage = (label.score * 100).toFixed(1);
+                const barWidth = Math.max(percentage * 0.8, 5); // Minimum width for visibility
+
+                const miniBar = document.createElement('div');
+                miniBar.className = 'mini-bar-item';
+                miniBar.innerHTML = `
+                    <div class="mini-label">${label.label}</div>
+                    <div class="mini-bar-container">
+                        <div class="mini-bar" style="width: ${barWidth}%"></div>
+                    </div>
+                    <div class="mini-percentage">${percentage}%</div>
+                `;
+                miniChart.appendChild(miniBar);
+            });
+
+            labelsDiv.appendChild(miniChart);
+            resultDiv.appendChild(textDiv);
+            resultDiv.appendChild(labelsDiv);
+            resultsContainer.appendChild(resultDiv);
+        });
+    }
+
+    function updateProgress(percent, status) {
+        const displayPercent = Math.max(percent, maxProgressSeen);
+        progressBar.style.width = `${displayPercent}%`;
+        progressText.textContent = `${Math.round(displayPercent)}%`;
+        if (status) {
+            processingStatus.textContent = status;
+        }
+    }
+
+    function showError(message) {
+        processingSection.classList.add('d-none');
+        resultSection.classList.add('d-none');
+        resultPlaceholder.classList.add('d-none');
+        errorSection.classList.remove('d-none');
+        document.getElementById('errorMessage').textContent = message;
+
+        // Enable button and hide spinner
+        classifyBtn.disabled = false;
+        classifySpinner.classList.add('d-none');
+    }
+
+    function exportResults() {
+        const categories = getCategories();
+        const exportResults = [];
+
+        // Extract from current display (skip aggregate section)
+        const resultDivs = resultsContainer.querySelectorAll('.border.rounded');
+        resultDivs.forEach((div, index) => {
+            if (index === 0) return; // Skip aggregate div
+
+            const textMatch = div.querySelector('div').textContent.match(/Item \d+: (.+)/);
+            const text = textMatch ? textMatch[1] : '';
+            const labels = Array.from(div.querySelectorAll('.ms-3')).map(spanDiv => {
+                const match = spanDiv.textContent.match(/(.+) \((\d+\.\d+)%\)/);
+                return match ? { label: match[1], score: parseFloat(match[2]) / 100 } : null;
+            }).filter(Boolean);
+
+            exportResults.push({ text, classifications: labels });
+        });
+
+        // Calculate aggregates
+        const categoryCounts = {};
+        categories.forEach(cat => categoryCounts[cat] = 0);
+
+        exportResults.forEach(result => {
+            const bestLabel = result.classifications.reduce((best, current) =>
+                current.score > best.score ? current : best
+            );
+            if (bestLabel.score > 0.5 && categoryCounts[bestLabel.label] !== undefined) {
+                categoryCounts[bestLabel.label]++;
+            }
+        });
+
+        const totalItems = exportResults.length;
+        const aggregates = categories.map(cat => ({
+            category: cat,
+            count: categoryCounts[cat] || 0,
+            percentage: totalItems > 0 ? ((categoryCounts[cat] || 0) / totalItems * 100).toFixed(1) : 0
+        }));
+
+        const exportData = {
+            categories: categories,
+            aggregates: aggregates,
+            results: exportResults,
+            timestamp: new Date().toISOString()
+        };
+
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+
+        const exportFileDefaultName = 'classification-results.json';
+
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+    }
+</script>

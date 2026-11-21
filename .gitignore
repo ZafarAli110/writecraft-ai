@@ -1,0 +1,50 @@
+# Build results
+bin/
+obj/
+release/
+*.dll
+*.exe
+*.o
+*.so
+*.dylib
+*.db
+
+# Visual Studio
+.vs/
+.vscode/
+*.user
+*.sln.iml
+*.suo
+
+# Rider
+.idea/
+*.sln.iml
+
+# User-specific files
+appsettings.Development.json
+*.log
+*.zip
+
+# AI Models - Large files, should not be committed
+AIModels/
+*.gguf
+*.ggml
+
+# Dependencies
+node_modules/
+packages/
+.nuget/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Environment
+.env
+.env.local

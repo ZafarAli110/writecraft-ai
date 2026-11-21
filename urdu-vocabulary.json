@@ -1,0 +1,212 @@
+{
+  "commonWords": {
+    "dukhan": "shop",
+    "dukan": "shop",
+    "dukan": "shop",
+    "market": "market",
+    "ghar": "home",
+    "school": "school",
+    "office": "office",
+    "hospital": "hospital",
+    "masjid": "mosque",
+    "mandir": "temple",
+
+    "jana": "to go",
+    "jao": "go",
+    "ja": "go",
+    "ana": "to come",
+    "aao": "come",
+    "karna": "to do",
+    "karo": "do",
+    "lana": "to bring",
+    "lao": "bring",
+    "le ana": "to bring",
+    "lekar ana": "to bring",
+    "khana": "to eat",
+    "khao": "eat",
+    "pina": "to drink",
+    "pio": "drink",
+    "dekho": "look",
+    "dekhna": "to see",
+    "suno": "listen",
+    "sunna": "to hear",
+    "bolo": "speak",
+    "bolna": "to speak",
+
+    "dahi": "yogurt",
+    "doodh": "milk",
+    "pani": "water",
+    "chai": "tea",
+    "coffee": "coffee",
+    "roti": "bread",
+    "chawal": "rice",
+    "sabzi": "vegetables",
+    "gosht": "meat",
+    "murghi": "chicken",
+    "anda": "egg",
+    "phal": "fruit",
+
+    "bahir": "outside",
+    "andar": "inside",
+    "upar": "up",
+    "neeche": "down",
+    "aage": "ahead",
+    "peeche": "behind",
+    "dayen": "right",
+    "bayen": "left",
+
+    "abhi": "now",
+    "kal": "tomorrow/yesterday",
+    "aaj": "today",
+    "parson": "day after tomorrow",
+    "subah": "morning",
+    "shaam": "evening",
+    "raat": "night",
+    "dopehar": "afternoon",
+
+    "bhook": "hunger",
+    "pyaas": "thirst",
+    "neend": "sleep",
+    "thakan": "tiredness",
+    "dard": "pain",
+
+    "acha": "good",
+    "bura": "bad",
+    "khush": "happy",
+    "udas": "sad",
+    "ghussa": "angry",
+    "thanda": "cold",
+    "garam": "hot",
+
+    "kya": "what",
+    "kab": "when",
+    "kahan": "where",
+    "kaun": "who",
+    "kaise": "how",
+    "kyun": "why",
+
+    "haan": "yes",
+    "nahi": "no",
+    "theek": "okay",
+    "shukria": "thank you",
+    "maaf karo": "sorry",
+    "khuda hafiz": "goodbye",
+
+    "yar": "friend, buddy, mate, pal",
+    "yaar": "friend, buddy, mate, pal",
+    "yr": "friend, buddy, mate, pal",
+    "deet": "stubborn, shameless, thick-skinned",
+    "dheet": "stubborn, shameless, thick-skinned",
+    "hi": "emphatic particle (very, indeed, only)",
+    "hee": "emphatic particle (very, indeed, only)",
+    "tou": "then, so (conjunction)",
+    "koi": "someone, anyone, some",
+    "bhot": "very, much, lot",
+    "bohat": "very, much, lot",
+    "insan": "person, human being",
+    "saad": "name (refers to a person named Saad)"
+  },
+
+  "highFrequencyWords": {
+    "note": "These words are always included (most common)",
+    "words": [ "ja", "jao", "karna", "hai", "hoon", "aur", "se", "ko", "ka", "main" ]
+  },
+
+  "phrases": [
+    {
+      "romanUrdu": "Kya hal hai",
+      "english": "How are you"
+    },
+    {
+      "romanUrdu": "Main theek hoon",
+      "english": "I am fine"
+    },
+    {
+      "romanUrdu": "Tum kahan ja rahe ho",
+      "english": "Where are you going"
+    },
+    {
+      "romanUrdu": "Mujhe bhook lagi hai",
+      "english": "I am hungry"
+    },
+    {
+      "romanUrdu": "Mujhe pyaas lagi hai",
+      "english": "I am thirsty"
+    },
+    {
+      "romanUrdu": "Aaj mausam acha hai",
+      "english": "The weather is good today"
+    },
+    {
+      "romanUrdu": "Main market ja raha hoon",
+      "english": "I am going to the market"
+    },
+    {
+      "romanUrdu": "Dukhan se doodh le aao",
+      "english": "Bring milk from the shop"
+    },
+    {
+      "romanUrdu": "Ye bahut mehnga hai",
+      "english": "This is very expensive"
+    },
+    {
+      "romanUrdu": "Mujhe samajh nahi aya",
+      "english": "I don't understand"
+    }
+  ],
+
+  "customExamples": [
+    {
+      "romanUrdu": "Bahir ja aur dukhan se dahi lekar aja",
+      "english": "Go outside and bring yogurt from the shop"
+    },
+    {
+      "romanUrdu": "Main abhi kaam kar raha hoon",
+      "english": "I am working right now"
+    },
+    {
+      "romanUrdu": "Kal office mat jana",
+      "english": "Don't go to the office tomorrow"
+    },
+    {
+      "romanUrdu": "Yr yeh kya hai",
+      "english": "Hey, what is this"
+    },
+    {
+      "romanUrdu": "Wo bhot acha insan hai",
+      "english": "He is a very good person"
+    },
+    {
+      "romanUrdu": "Tum tou koi bohat dheet ho",
+      "english": "You are really very stubborn"
+    },
+    {
+      "romanUrdu": "Yar tumhe kya problem hai",
+      "english": "Man, what's your problem"
+    },
+    {
+      "romanUrdu": "Yr Ali tou bhot smart hai",
+      "english": "Hey Ali, you're very smart"
+    },
+    {
+      "romanUrdu": "Wo tou koi bhot acha driver hai",
+      "english": "He is such a very good driver"
+    },
+    {
+      "romanUrdu": "Tum bhot hi lazy ho",
+      "english": "You are really very lazy"
+    },
+    {
+      "romanUrdu": "Yr saad tou koi bhot hi deet insan hai",
+      "english": "Hey Saad, you're such a very stubborn person"
+    }
+  ],
+
+  "notes": [
+    "Add your own words to 'commonWords' section",
+    "Add common phrases to 'phrases' section",
+    "Add translation examples to 'customExamples' section",
+    "Words are case-insensitive during matching",
+    "The more examples you add, the better the translations"
+  ]
+}

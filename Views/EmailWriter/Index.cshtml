@@ -1,0 +1,240 @@
+@{
+    ViewData["Title"] = "Email Writer - WriteCraftAI";
+}
+
+@section Styles {
+    <style>
+        .token-counter {
+            font-size: 0.875rem;
+            color: var(--bs-secondary-color);
+        }
+
+        .token-counter.warning {
+            color: var(--bs-warning) !important;
+        }
+
+        .token-counter.danger {
+            color: var(--bs-danger) !important;
+        }
+
+        .output-area {
+            min-height: 200px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .metrics {
+            font-size: 0.75rem;
+            color: var(--bs-secondary);
+        }
+    </style>
+}
+
+<div class="row">
+    <div class="col-12">
+
+        <!-- Feature Description -->
+        <div class="alert border-0 mb-4 feature-description-box">
+            <div class="d-flex align-items-start gap-3">
+                <i class="bi bi-envelope-paper fs-4 text-primary"></i>
+                <div>
+                    <h6 class="mb-1 fw-semibold text-light">Professional Email Writer</h6>
+                    <small class="text-secondary">Generate well-structured, professional emails in seconds. Just provide key points or describe what you want to say, choose your preferred tone (professional, casual, or formal business), and let AI craft the perfect email for you.</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Card -->
+        <div class="card mb-4 border-slate-700 bg-slate-800">
+            <div class="card-header bg-slate-900 border-bottom border-slate-700">
+                <h5 class="mb-0 text-indigo-400">
+                    <i class="bi bi-envelope me-2"></i>Email Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="subjectText" class="form-label text-slate-300">Subject (Optional)</label>
+                    <input type="text" id="subjectText" class="form-control bg-slate-900 text-slate-100 border-slate-600"
+                           placeholder="Email subject line...">
+                </div>
+
+                <div class="mb-3">
+                    <label for="inputText" class="form-label text-slate-300">Email Content / Key Points</label>
+                    <textarea id="inputText" class="form-control bg-slate-900 text-slate-100 border-slate-600"
+                              rows="6" placeholder="Describe what you want to say or provide key points..."></textarea>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span id="tokenCounter" class="token-counter">Tokens: 0/4096</span>
+
+                    <div class="d-flex gap-2">
+                        <select id="toneSelect" class="form-select form-select-sm w-auto bg-slate-900 text-slate-100 border-slate-600">
+                            <option value="professional">📋 Professional</option>
+                            <option value="casual">😊 Casual</option>
+                            <option value="business">💼 Business/Formal</option>
+                        </select>
+                        <button id="writeBtn" class="btn btn-primary btn-sm fw-semibold">
+                            <span class="d-none spinner-border spinner-border-sm me-1" id="writeSpinner"></span>
+                            <i class="bi bi-pencil-square"></i> Write Email
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Card -->
+        <div class="card border-slate-700 bg-slate-800" id="outputCard" style="display: none;">
+            <div class="card-header bg-slate-900 border-bottom border-slate-700 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-indigo-400">
+                    <i class="bi bi-mailbox me-2"></i>Generated Email
+                </h5>
+                <small id="metrics" class="metrics"></small>
+            </div>
+            <div id="aiLoadingIndicator" class="ai-loading-indicator" style="display: none;">
+                <span class="spinner-border text-primary" role="status"></span>
+                <span>AI is processing...</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="waitingMessage" class="waiting-text" style="display: none;">
+                    Crafting your email<span class="waiting-dots"></span>
+                </div>
+                <div id="output" class="output-area m-0 p-3"></div>
+            </div>
+            <div class="card-footer bg-slate-900 border-top border-slate-700">
+                <div class="d-flex gap-2 justify-content-end">
+                    <button id="copyBtn" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                    <button id="clearBtn" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-trash"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/stream-handler.js" asp-append-version="true"></script>
+    <script>
+        const inputText = document.getElementById('inputText');
+        const subjectText = document.getElementById('subjectText');
+        const tokenCounter = document.getElementById('tokenCounter');
+        const writeBtn = document.getElementById('writeBtn');
+        const writeSpinner = document.getElementById('writeSpinner');
+        const outputCard = document.getElementById('outputCard');
+        const output = document.getElementById('output');
+        const metrics = document.getElementById('metrics');
+        const waitingMessage = document.getElementById('waitingMessage');
+        const aiLoadingIndicator = document.getElementById('aiLoadingIndicator');
+
+        // Initialize OutputHandler for markdown rendering
+        const outputHandler = new OutputHandler(output);
+
+        function updateTokenCount() {
+            const words = inputText.value.trim().split(/\s+/).filter(Boolean).length;
+            const tokens = Math.ceil(words / 0.75);
+            tokenCounter.textContent = `Tokens: ${tokens}/4096`;
+
+            if (tokens > 3600) {
+                tokenCounter.className = 'token-counter danger';
+            } else if (tokens > 3072) {
+                tokenCounter.className = 'token-counter warning';
+            } else {
+                tokenCounter.className = 'token-counter';
+            }
+        }
+
+        inputText.addEventListener('input', updateTokenCount);
+
+        writeBtn.addEventListener('click', async () => {
+            const content = inputText.value.trim();
+            if (!content) {
+                alert('Please enter email content or key points.');
+                return;
+            }
+            output.textContent = '';
+            outputHandler.clear();
+            outputCard.style.display = 'block';
+            waitingMessage.style.display = 'block';
+            aiLoadingIndicator.style.display = 'flex';
+            writeBtn.disabled = true;
+            writeSpinner.classList.remove('d-none');
+            metrics.textContent = '⏳ Initializing...';
+
+            const request = {
+                content: content,
+                tone: document.getElementById('toneSelect').value,
+                subject: subjectText.value.trim() || null
+            };
+
+            try {
+                new StreamHandler('/api/email/write', request, {
+                    onToken: (token) => {
+                        waitingMessage.style.display = 'none';
+                        outputHandler.appendToken(token);
+                    },
+
+                    onFirstToken: (latency) => {
+                        metrics.textContent = `⚡ First token: ${latency.toFixed(2)}s`;
+                    },
+
+                    onStatus: (status) => {
+                        metrics.textContent = status;
+                    },
+
+                    onComplete: (message) => {
+                        aiLoadingIndicator.style.display = 'none';
+                        writeBtn.disabled = false;
+                        writeSpinner.classList.add('d-none');
+                        metrics.textContent = `${metrics.textContent} | ✅ Complete`;
+                        output.style.borderLeft = '3px solid var(--bs-success)';
+                        setTimeout(() => output.style.borderLeft = '', 1000);
+                    },
+
+                    onError: (error) => {
+                        console.error('Email writing error:', error);
+                        waitingMessage.style.display = 'none';
+                        aiLoadingIndicator.style.display = 'none';
+                        outputHandler.setError(`❌ ${error}`);
+                        writeBtn.disabled = false;
+                        writeSpinner.classList.add('d-none');
+                        metrics.textContent = '❌ Error occurred';
+                    }
+                });
+            } catch (err) {
+                console.error('Failed to start email writing:', err);
+                waitingMessage.style.display = 'none';
+                aiLoadingIndicator.style.display = 'none';
+                metrics.textContent = '❌ Failed to start writing';
+                writeBtn.disabled = false;
+                writeSpinner.classList.add('d-none');
+            }
+        });
+
+        document.getElementById('copyBtn').onclick = async () => {
+            try {
+                const rawText = outputHandler.getRawText();
+                await navigator.clipboard.writeText(rawText);
+                const btn = document.getElementById('copyBtn');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(() => btn.innerHTML = original, 1500);
+            } catch (err) {
+                alert('Failed to copy: ' + err.message);
+            }
+        };
+
+        document.getElementById('clearBtn').onclick = () => {
+            if (outputHandler.getRawText() && confirm('Clear all text?')) {
+                inputText.value = '';
+                subjectText.value = '';
+                outputCard.style.display = 'none';
+                updateTokenCount();
+            }
+        };
+    </script>
+}

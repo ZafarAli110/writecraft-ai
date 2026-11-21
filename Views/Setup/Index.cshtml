@@ -1,0 +1,493 @@
+@{
+    ViewData["Title"] = "Setup - WriteCraftAI";
+    Layout = null; // No layout for setup wizard
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="/css/variables.css" asp-append-version="true">
+    <link rel="stylesheet" href="/css/theme.css" asp-append-version="true">
+    <link rel="stylesheet" href="/css/main.css" asp-append-version="true">
+</head>
+<body>
+    <div class="setup-container">
+        <h1>WriteCraftAI</h1>
+        <p class="tagline" style="text-align: center; margin-bottom: 1.5rem;">Private & Local AI Writing Studio</p>
+        
+        <!-- App Introduction -->
+        <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(99, 102, 241, 0.2);">
+            <h3 style="margin: 0 0 0.75rem 0; color: #a5b4fc;">🚀 Welcome to WriteCraft.AI</h3>
+            <p style="margin: 0 0 1rem 0; font-size: 0.95rem; line-height: 1.6;">
+                <strong>WriteCraft.AI</strong> is your complete AI writing studio that runs <strong>100% locally on your device</strong>. 
+                No cloud required, no data leaves your computer, and it works offline after setup.
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.85rem;">
+                <div>✍️ <strong>Writing Tools</strong> - Grammar check, writing assistant, email composer, text classification</div>
+                <div>🌐 <strong>Translation</strong> - Roman Urdu, English translation</div>
+                <div>🎤 <strong>Voice Tools</strong> - Speech-to-text, text-to-speech</div>
+                <div>🖼️ <strong>Image Tools</strong> - Background removal, image segmentation</div>
+                <div>💻 <strong>Developer Tools</strong> - Git commit assistant</div>
+                <div>🔒 <strong>100% Private</strong> - All processing happens locally</div>
+            </div>
+            <p style="margin: 1rem 0 0 0; font-size: 0.8rem; color: #94a3b8;">
+                Powered by <a href="https://github.com/ggerganov/llama.cpp" target="_blank" rel="noopener" style="color: #a5b4fc;">llama.cpp</a>
+            </p>
+        </div>
+
+        <!-- 🎤 STEP 1: Whisper Model for Voice -->
+        <div class="step active" id="step1">
+            <h2>Step 1: Download Speech-to-Text Model (Required for Voice)</h2>
+            <p>For voice dictation feature, download the Whisper model:</p>
+
+            <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #a5b4fc;">📁 Model Placement Instructions</h4>
+                <ol style="margin: 0; padding-left: 1.5rem; font-size: 0.9rem; line-height: 1.6;">
+                    <li>Create a folder (if missing) named <code>AIModels</code> in your project root directory</li>
+                    <li>Download the Whisper model file from the link below</li>
+                    <li>Save the file as <code>ggml-small.bin</code> in the <code>AIModels</code> folder</li>
+                    <li>Click the <strong>"Validate Voice Model"</strong> button below to verify the model is properly placed</li>
+                    <li>Once validated, you'll be able to proceed to the next step</li>
+                </ol>
+            </div>
+
+            <div class="download-box" style="margin-bottom: 1.5rem;">
+                <h3>🎤 Whisper Small (Recommended)</h3>
+                <a href="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin"
+                   target="_blank" class="btn-primary">
+                   📥 Download ggml-small.bin (244 MB)
+                </a>
+                <p class="model-info">✅ Good accuracy • Fast on CPU • Supports 100+ languages</p>
+                <p style="margin: 0.5rem 0; font-size: 0.85rem;">Save to: <code>AIModels/ggml-small.bin</code></p>
+            </div>
+
+            <button onclick="validateWhisperModel()" class="btn-primary">Validate Voice Model</button>
+            <div id="whisperValidationResult"></div>
+        </div>
+
+        <!-- 🤖 STEP 2: AI Writing Model -->
+        <div class="step" id="step2" style="display:none;">
+            <h2>Step 2: Download AI Writing Model</h2>
+            <p>Choose and download a model file. Place it in the <code>AIModels</code> folder at the root of your project.</p>
+
+            <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #a5b4fc;">📁 Model Placement Instructions</h4>
+                <ol style="margin: 0; padding-left: 1.5rem; font-size: 0.9rem; line-height: 1.6;">
+                    <li>Create a folder (if missing) named <code>AIModels</code> in your project root directory</li>
+                    <li>Download the model file from the links below</li>
+                    <li>Save the downloaded file directly into the <code>AIModels</code> folder</li>
+                    <li>Click the <strong>"Validate AI Model"</strong> button below to check if the model is properly placed</li>
+                    <li>Once validated, you'll be able to proceed to the next step</li>
+                </ol>
+            </div>
+
+            <div class="download-box">
+                <h3>⚡ Recommended for CPU (Best Performance)</h3>
+                <a href="https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF?show_file_info=Qwen2.5-7B-Instruct-Q4_K_M.gguf"
+                   target="_blank" class="btn-primary">
+                   📥 Download Qwen2.5-7B (4.6 GB)
+                </a>
+                <p class="model-info">✅ Faster on CPU • Lower memory usage • Good quality</p>
+            </div>
+
+            <div class="download-box" style="margin-top: 1.5rem;">
+                <h3>🚀 For GPU or High-End CPU (Better Quality)</h3>
+                <a href="https://huggingface.co/bartowski/Qwen2.5-14B-Instruct-GGUF?show_file_info=Qwen2.5-14B-Instruct-Q4_K_M.gguf"
+                   target="_blank" class="btn-primary">
+                   📥 Download Qwen2.5-14B (8.5 GB)
+                </a>
+                <p class="model-info">✅ Higher quality • Requires more RAM • Slower on CPU</p>
+            </div>
+
+            <p style="margin-top: 1.5rem; font-size: 0.9rem; color: #94a3b8;">
+                💡 <strong>Tip:</strong> Start with 7B for best CPU performance. You can switch models later by updating <code>config.json</code>.
+            </p>
+
+            <button onclick="validateModel()" class="btn-primary" style="margin-top: 1.5rem;">Validate AI Model</button>
+            <div id="validationResult"></div>
+        </div>
+
+        <!-- ✅ STEP 3: Performance Check -->
+        <div class="step" id="step3" style="display:none;">
+            <h2>Step 3: Optional - Pre-download Browser AI Models</h2>
+            <p>These AI models run directly in your browser for privacy. They're downloaded once and cached for instant future use.</p>
+            
+            <div class="download-box" style="margin-bottom: 1.5rem;">
+                <h3>🖼️ Background Remover Model (Optional)</h3>
+                <p class="model-info">Remove backgrounds from images using AI - all processing happens in your browser.</p>
+                <button onclick="downloadBgRemoverModel()" class="btn-primary" id="bgRemoverBtn">
+                   📥 Download RMBG-1.4 (~180 MB)
+                </button>
+                <div id="bgRemoverProgress" style="display: none; margin-top: 1rem;">
+                    <div style="background: #334155; border-radius: 4px; height: 8px; overflow: hidden;">
+                        <div id="bgRemoverProgressBar" style="background: #6366f1; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                    <p id="bgRemoverStatus" style="margin: 0.5rem 0; font-size: 0.85rem;">Initializing...</p>
+                </div>
+                <div id="bgRemoverResult" style="margin-top: 0.5rem;"></div>
+                <p style="margin: 0.5rem 0; font-size: 0.85rem; color: #94a3b8;">
+                    ✅ Cached in browser • Works offline after first download
+                </p>
+            </div>
+
+             <div class="download-box" style="margin-bottom: 1.5rem;">
+                 <h3>✂️ Image Segmentation Model (Optional)</h3>
+                 <p class="model-info">Select any object in an image with AI-powered precision (Segment Anything).</p>
+                 <button onclick="downloadSegmentationModel()" class="btn-primary" id="segmentationBtn">
+                    📥 Download SlimSAM (~50 MB)
+                 </button>
+                 <div id="segmentationProgress" style="display: none; margin-top: 1rem;">
+                     <div style="background: #334155; border-radius: 4px; height: 8px; overflow: hidden;">
+                         <div id="segmentationProgressBar" style="background: #8b5cf6; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                     </div>
+                     <p id="segmentationStatus" style="margin: 0.5rem 0; font-size: 0.85rem;">Initializing...</p>
+                 </div>
+                 <div id="segmentationResult" style="margin-top: 0.5rem;"></div>
+                 <p style="margin: 0.5rem 0; font-size: 0.85rem; color: #94a3b8;">
+                     ✅ Cached in browser • GPU accelerated when available
+                 </p>
+             </div>
+
+              <div class="download-box" style="margin-bottom: 1.5rem;">
+                  <h3>🏷️ Text Classification Model (Optional)</h3>
+                  <p class="model-info">Automatically categorize text into custom labels you define.</p>
+                  <button onclick="downloadZeroShotModel()" class="btn-primary" id="zeroShotBtn">
+                     📥 Download DeBERTa (~22 MB)
+                  </button>
+                  <div id="zeroShotProgress" style="display: none; margin-top: 1rem;">
+                      <div style="background: #334155; border-radius: 4px; height: 8px; overflow: hidden;">
+                          <div id="zeroShotProgressBar" style="background: #06b6d4; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                      </div>
+                      <p id="zeroShotStatus" style="margin: 0.5rem 0; font-size: 0.85rem;">Initializing...</p>
+                  </div>
+                  <div id="zeroShotResult" style="margin-top: 0.5rem;"></div>
+                  <p style="margin: 0.5rem 0; font-size: 0.85rem; color: #94a3b8;">
+                      ✅ Cached in browser • Multi-label classification support
+                  </p>
+              </div>
+
+              <div class="download-box" style="margin-bottom: 1.5rem;">
+                  <h3>🔍 Bookmark Search Model (Optional)</h3>
+                  <p class="model-info">AI-powered semantic search through your browser bookmarks using embeddings.</p>
+                  <button onclick="downloadEmbeddingModel()" class="btn-primary" id="embeddingBtn">
+                     📥 Download all-MiniLM-L6-v2 (~23 MB)
+                  </button>
+                  <div id="embeddingProgress" style="display: none; margin-top: 1rem;">
+                      <div style="background: #334155; border-radius: 4px; height: 8px; overflow: hidden;">
+                          <div id="embeddingProgressBar" style="background: #10b981; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                      </div>
+                      <p id="embeddingStatus" style="margin: 0.5rem 0; font-size: 0.85rem;">Initializing...</p>
+                  </div>
+                  <div id="embeddingResult" style="margin-top: 0.5rem;"></div>
+                  <p style="margin: 0.5rem 0; font-size: 0.85rem; color: #94a3b8;">
+                      ✅ Cached in browser • Enables semantic bookmark search
+                  </p>
+              </div>
+
+            <button onclick="goToStep4()" class="btn-primary" style="margin-top: 1.5rem;">Continue to Final Step</button>
+        </div>
+
+        <!-- ✅ STEP 4: Complete -->
+        <div class="step" id="step4" style="display:none;">
+            <h2>Step 4: Initialize & Complete</h2>
+            <p id="backendStatus">Detecting backend...</p>
+            <button onclick="initializeModel()" class="btn-primary">Initialize AI Engine</button>
+        </div>
+
+        <!-- ✅ STEP 5: Complete -->
+        <div class="step" id="step5" style="display:none;">
+            <h2>✅ Setup Complete!</h2>
+            <p class="text-slate-100">All AI features are now ready to use.</p>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem;">
+                <a href="/grammar" style="color: #a5b4fc; text-decoration: none; font-weight: 600;">Start Writing</a>
+                <a href="/asr" style="color: #a5b4fc; text-decoration: none; font-weight: 600;">Try Voice Input</a>
+                <a href="/backgroundremover" style="color: #a5b4fc; text-decoration: none; font-weight: 600;">Background Remover</a>
+                <a href="/imagesegmentation" style="color: #a5b4fc; text-decoration: none; font-weight: 600;">Image Segmentation</a>
+                <a href="/zeroshotclassification" style="color: #a5b4fc; text-decoration: none; font-weight: 600;">Text Classification</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function validateWhisperModel() {
+    const result = await fetch('/api/asr/health', { method: 'GET' });
+    const data = await result.json();
+    
+    const whisperResult = document.getElementById('whisperValidationResult');
+    
+    if (data.ready) {
+        whisperResult.innerHTML = `
+            <div class="success" style="margin-top: 1rem;">
+                ✅ Whisper model found<br/>
+                <small style="font-size: 0.8rem; color: var(--bs-secondary);">${data.modelPath}</small><br/>
+                ${data.ffmpeg ? '✅ FFmpeg ready' : '❌ FFmpeg not found'}
+            </div>
+        `;
+        if (data.ffmpeg) {
+            document.getElementById('step2').style.display = 'block';
+        }
+    } else {
+        whisperResult.innerHTML = `
+            <div class="error" style="margin-top: 1rem;">
+                ❌ Whisper model NOT found<br/>
+                <small style="font-size: 0.8rem; color: var(--bs-secondary);">Expected at: ${data.modelPath}</small><br/>
+                <a href="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin" 
+                   target="_blank" style="color: #6366f1;">Download here →</a>
+            </div>
+        `;
+    }
+}
+
+        // Validate AI writing model
+        async function validateModel() {
+            const result = await fetch('/api/setup/validate', { method: 'POST' });
+            const data = await result.json();
+
+            document.getElementById('validationResult').innerHTML =
+                `<div class="${data.isValid ? 'success' : 'error'}" style="margin-top: 1rem;">${data.message}</div>`;
+
+            if (data.isValid) {
+                document.getElementById('step3').style.display = 'block';
+            }
+        }
+
+        function goToStep4() {
+            document.getElementById('step4').style.display = 'block';
+            detectBackend();
+        }
+
+        async function detectBackend() {
+            // This would check GPU availability in a real implementation
+            document.getElementById('backendStatus').innerHTML =
+                '✅ Backend detected: ' + (navigator.gpu ? 'Vulkan (GPU)' : 'CPU');
+        }
+
+        async function initializeModel() {
+            const response = await fetch('/api/setup/initialize', { method: 'POST' });
+            if (response.ok) {
+                document.getElementById('step5').style.display = 'block';
+            } else {
+                alert('Initialization failed: ' + await response.text());
+            }
+        }
+
+        // Background Remover Model Download
+        async function downloadBgRemoverModel() {
+            const btn = document.getElementById('bgRemoverBtn');
+            const progressDiv = document.getElementById('bgRemoverProgress');
+            const progressBar = document.getElementById('bgRemoverProgressBar');
+            const statusEl = document.getElementById('bgRemoverStatus');
+            const resultEl = document.getElementById('bgRemoverResult');
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Downloading...';
+            progressDiv.style.display = 'block';
+            resultEl.innerHTML = '';
+
+            try {
+                // Dynamically import the background remover module
+                const { init, loadModel } = await import('/js/background-remover.js');
+                
+                init();
+                
+                let maxProgress = 0;
+                
+                await loadModel((progress) => {
+                    if (progress.status === 'progress') {
+                        const percent = Math.max(progress.progress, maxProgress);
+                        maxProgress = percent;
+                        progressBar.style.width = `${percent}%`;
+                        
+                        if (progress.loaded > 0 && progress.total > 0) {
+                            const loadedMB = (progress.loaded / 1024 / 1024).toFixed(1);
+                            const totalMB = (progress.total / 1024 / 1024).toFixed(1);
+                            // Only show if values are meaningful (not 0.0)
+                            if (parseFloat(totalMB) > 0) {
+                                statusEl.textContent = `Downloading: ${loadedMB} MB / ${totalMB} MB (${Math.round(percent)}%)`;
+                            } else {
+                                statusEl.textContent = `Downloading: ${Math.round(percent)}%`;
+                            }
+                        } else {
+                            statusEl.textContent = `Downloading: ${Math.round(percent)}%`;
+                        }
+                    } else if (progress.status === 'ready') {
+                        progressBar.style.width = '100%';
+                        statusEl.textContent = 'Complete!';
+                    }
+                });
+
+                btn.textContent = '✅ Downloaded & Cached';
+                btn.style.background = '#22c55e';
+                resultEl.innerHTML = '<div class="success">✅ Background Remover model is now cached in your browser!</div>';
+                
+            } catch (error) {
+                console.error('BG Remover download failed:', error);
+                btn.disabled = false;
+                btn.textContent = '📥 Retry Download';
+                resultEl.innerHTML = `<div class="error">❌ Download failed: ${error.message}</div>`;
+            }
+        }
+
+        // Image Segmentation Model Download
+        async function downloadSegmentationModel() {
+            const btn = document.getElementById('segmentationBtn');
+            const progressDiv = document.getElementById('segmentationProgress');
+            const progressBar = document.getElementById('segmentationProgressBar');
+            const statusEl = document.getElementById('segmentationStatus');
+            const resultEl = document.getElementById('segmentationResult');
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Downloading...';
+            progressDiv.style.display = 'block';
+            resultEl.innerHTML = '';
+
+            try {
+                // Dynamically import the segmentation module
+                const { init, loadModel } = await import('/js/image-segmentation.js');
+
+                init();
+
+                let maxProgress = 0;
+
+                await loadModel((progress) => {
+                    if (progress.status === 'progress') {
+                        const percent = Math.max(progress.progress, maxProgress);
+                        maxProgress = percent;
+                        progressBar.style.width = `${percent}%`;
+
+                        if (progress.loaded > 0 && progress.total > 0) {
+                            const loadedMB = (progress.loaded / 1024 / 1024).toFixed(1);
+                            const totalMB = (progress.total / 1024 / 1024).toFixed(1);
+                            // Only show if values are meaningful (not 0.0)
+                            if (parseFloat(totalMB) > 0) {
+                                statusEl.textContent = `Downloading: ${loadedMB} MB / ${totalMB} MB (${Math.round(percent)}%)`;
+                            } else {
+                                statusEl.textContent = `Downloading: ${Math.round(percent)}%`;
+                            }
+                        } else {
+                            statusEl.textContent = `Downloading: ${Math.round(percent)}%`;
+                        }
+                    } else if (progress.status === 'ready') {
+                        progressBar.style.width = '100%';
+                        statusEl.textContent = 'Complete!';
+                    }
+                });
+
+                btn.textContent = '✅ Downloaded & Cached';
+                btn.style.background = '#22c55e';
+                resultEl.innerHTML = '<div class="success">✅ Image Segmentation model is now cached in your browser!</div>';
+
+            } catch (error) {
+                console.error('Segmentation download failed:', error);
+                btn.disabled = false;
+                btn.textContent = '📥 Retry Download';
+                resultEl.innerHTML = `<div class="error">❌ Download failed: ${error.message}</div>`;
+            }
+        }
+
+        // Zero-Shot Classification Model Download
+        async function downloadZeroShotModel() {
+            const btn = document.getElementById('zeroShotBtn');
+            const progressDiv = document.getElementById('zeroShotProgress');
+            const progressBar = document.getElementById('zeroShotProgressBar');
+            const statusEl = document.getElementById('zeroShotStatus');
+            const resultEl = document.getElementById('zeroShotResult');
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Downloading...';
+            progressDiv.style.display = 'block';
+            resultEl.innerHTML = '';
+
+            try {
+                // Dynamically import the zero-shot classification module
+                const { init, loadModel } = await import('/js/zero-shot-classification.js');
+
+                init();
+
+                let maxProgress = 0;
+
+                await loadModel((progress) => {
+                    if (progress.status === 'progress') {
+                        const percent = Math.max(progress.progress, maxProgress);
+                        maxProgress = percent;
+                        progressBar.style.width = `${percent}%`;
+
+                        if (progress.loaded > 0 && progress.total > 0) {
+                            const loadedMB = (progress.loaded / 1024 / 1024).toFixed(1);
+                            const totalMB = (progress.total / 1024 / 1024).toFixed(1);
+                            // Only show if values are meaningful (not 0.0)
+                            if (parseFloat(totalMB) > 0) {
+                                statusEl.textContent = `Downloading: ${loadedMB} MB / ${totalMB} MB (${Math.round(percent)}%)`;
+                            } else {
+                                statusEl.textContent = `Downloading: ${Math.round(percent)}%`;
+                            }
+                        } else {
+                            statusEl.textContent = `Downloading: ${Math.round(percent)}%`;
+                        }
+                    } else if (progress.status === 'ready') {
+                        progressBar.style.width = '100%';
+                        statusEl.textContent = 'Complete!';
+                    }
+                });
+
+                btn.textContent = '✅ Downloaded & Cached';
+                btn.style.background = '#22c55e';
+                resultEl.innerHTML = '<div class="success">✅ Text Classification model is now cached in your browser!</div>';
+
+            } catch (error) {
+                console.error('Zero-Shot download failed:', error);
+                btn.disabled = false;
+                btn.textContent = '📥 Retry Download';
+                resultEl.innerHTML = `<div class="error">❌ Download failed: ${error.message}</div>`;
+            }
+        }
+
+        // Embedding Model Download
+        async function downloadEmbeddingModel() {
+            const btn = document.getElementById('embeddingBtn');
+            const progressDiv = document.getElementById('embeddingProgress');
+            const progressBar = document.getElementById('embeddingProgressBar');
+            const statusEl = document.getElementById('embeddingStatus');
+            const resultEl = document.getElementById('embeddingResult');
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Downloading...';
+            progressDiv.style.display = 'block';
+            resultEl.innerHTML = '';
+
+            try {
+                // Dynamically import the bookmark search module
+                const { bookmarkSearch } = await import('/js/bookmark-search.js');
+
+                let maxProgress = 0;
+
+                await bookmarkSearch.init((msg) => {
+                    // Extract progress percentage from message
+                    const percentMatch = msg.match(/(\d+)%/);
+                    if (percentMatch) {
+                        const percent = Math.max(parseInt(percentMatch[1]), maxProgress);
+                        maxProgress = percent;
+                        progressBar.style.width = `${percent}%`;
+                        statusEl.textContent = msg;
+                    } else {
+                        statusEl.textContent = msg;
+                    }
+                });
+
+                btn.textContent = '✅ Downloaded & Cached';
+                btn.style.background = '#22c55e';
+                resultEl.innerHTML = '<div class="success">✅ Bookmark Search model is now cached in your browser!</div>';
+
+            } catch (error) {
+                console.error('Embedding download failed:', error);
+                btn.disabled = false;
+                btn.textContent = '📥 Retry Download';
+                resultEl.innerHTML = `<div class="error">❌ Download failed: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

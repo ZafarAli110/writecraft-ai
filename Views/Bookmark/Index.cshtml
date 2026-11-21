@@ -1,0 +1,572 @@
+@{
+    ViewData["Title"] = "Bookmark Search - WriteCraftAI";
+}
+
+@section Styles {
+    <style>
+        .feature-description-box {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2) !important;
+            border-radius: 0.75rem;
+        }
+
+        .feature-description-box .feature-icon {
+            font-size: 2rem;
+            color: #6366f1;
+        }
+
+        .feature-description-box .feature-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .feature-description-box .feature-description {
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .model-status {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .model-status.cached {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .progress-container {
+            margin-top: 1rem;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .bookmark-card {
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            background: white;
+            transition: box-shadow 0.2s;
+        }
+
+        .bookmark-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .bookmark-title {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            display: block;
+            word-break: break-word;
+        }
+
+        .bookmark-url {
+            color: #6366f1;
+            text-decoration: none;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            display: block;
+            word-break: break-word;
+        }
+
+        .bookmark-meta {
+            font-size: 0.75rem;
+            color: #64748b;
+            word-break: break-word;
+        }
+
+        .similarity-score {
+            font-size: 0.75rem;
+            color: #10b981;
+            font-weight: 500;
+        }
+
+        [data-theme="dark"] .feature-description-box {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-color: rgba(99, 102, 241, 0.3) !important;
+        }
+
+        [data-theme="dark"] .feature-description-box .feature-title {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .feature-description-box .feature-description {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .model-status {
+            background: rgba(30, 41, 59, 0.5);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="dark"] .bookmark-card {
+            background: rgba(30, 41, 59, 0.5);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="dark"] .bookmark-title {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .bookmark-meta {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] #searchInput:disabled {
+            background-color: #374151;
+            color: #9ca3af;
+        }
+
+        [data-theme="dark"] .filter-btn {
+            border-color: #4b5563;
+            background: #1f2937;
+            color: #e5e7eb;
+        }
+
+        [data-theme="dark"] .filter-btn:hover {
+            background: #374151;
+        }
+
+        [data-theme="dark"] .filter-btn.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+
+        #searchInput:disabled {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* Browser colors */
+        .browser-chrome { color: #4285f4; }
+        .browser-firefox { color: #ff7139; }
+        .browser-edge { color: #00cc44; }
+        .browser-safari { color: #1ad1ff; }
+        .browser-opera { color: #ff1b2d; }
+        .browser-other { color: #6b7280; }
+
+        .filter-buttons {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.125rem 0.375rem;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .filter-btn.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+
+        @@keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .spinning {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+}
+
+<div class="row">
+    <div class="col-12">
+
+        <!-- Feature Description -->
+        <div class="alert border-0 mb-4 feature-description-box">
+            <div class="d-flex align-items-start gap-3">
+                <div class="feature-icon">
+                    <i class="bi bi-bookmark-star"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h3 class="feature-title mb-2">Semantic Bookmark Search</h3>
+                    <p class="feature-description mb-0">
+                        Search through your browser bookmarks using natural language. Our AI-powered semantic search understands meaning and context,
+                        not just keywords. Powered by all-MiniLM-L6-v2 embeddings for accurate similarity matching.
+                    </p>
+                    <p class="feature-description mb-2" style="font-size: 0.9em; color: #64748b;">
+                        🔒 <strong>Privacy:</strong> This feature uses your own local database (<code>bookmarks.db</code>) stored on your device.
+                        No bookmark data is sent to external servers - everything stays private and under your control.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Status -->
+        <div class="model-status mb-4" id="modelStatus">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 class="mb-1">Embedding Model: all-MiniLM-L6-v2</h5>
+                    <p class="mb-0 text-muted" id="modelStatusText">Model not loaded</p>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button id="loadModelBtn" class="btn btn-sm btn-primary" style="display: none;">
+                        <i class="bi bi-download"></i> Load Model
+                    </button>
+                    <button id="clearCacheBtn" class="btn btn-sm btn-outline-secondary" disabled>
+                        <i class="bi bi-trash"></i> Clear Cache
+                    </button>
+                    <div class="status-indicator" id="cacheStatus">
+                        <i class="bi bi-circle"></i> Checking...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sync Section -->
+        <div class="mb-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <button id="syncBtn" class="btn btn-primary">
+                    <i class="bi bi-arrow-repeat"></i> Sync Bookmarks
+                </button>
+                <div class="text-muted" id="syncStatus">Ready to sync</div>
+            </div>
+
+            <div id="progressContainer" class="progress-container" style="display: none;">
+                <div class="progress mb-2">
+                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                </div>
+                <div id="progressText" class="text-muted"></div>
+            </div>
+
+            <div class="form-text" id="lastSyncTime"></div>
+            <div class="form-text">Only resync if you've added new bookmarks since your last sync. Existing bookmarks remain searchable without resyncing.</div>
+        </div>
+
+        <!-- Show All Section -->
+        <div class="mb-4">
+            <button id="showAllBtn" class="btn btn-outline-primary">
+                <i class="bi bi-list"></i> Show All Bookmarks
+            </button>
+            <div class="form-text" id="bookmarkCount">Loading bookmark count...</div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="mb-4">
+            <label for="searchInput" class="form-label fw-semibold">Semantic Search</label>
+            <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="Initializing model..." disabled style="max-width: 600px;">
+            <div class="form-text">Try queries like "machine learning tutorials" or "JavaScript frameworks"</div>
+        </div>
+
+        <!-- Results Count -->
+        <div id="resultsCount" class="mb-3"></div>
+
+        <!-- Filter Container -->
+        <div id="filterContainer" class="mb-3"></div>
+
+        <!-- Results -->
+        <div id="results" class="results-grid"></div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script type="module">
+        import { bookmarkSearch } from '/js/bookmark-search.js';
+
+        let progressCallback = (msg) => {
+            const container = document.getElementById('progressContainer');
+            const bar = document.getElementById('progressBar');
+            const text = document.getElementById('progressText');
+            if (container) container.style.display = 'block';
+            if (text) text.textContent = msg;
+            const percentMatch = msg.match(/(\d+)%/);
+            if (bar) {
+                bar.style.width = percentMatch ? percentMatch[1] + '%' : '0%';
+            }
+        };
+
+        // Load bookmark list for count (without model)
+        await bookmarkSearch.loadBookmarksList();
+
+        // Check if model is cached and preload model if so
+        try {
+            const cache = await caches.open('transformers-cache');
+            const keys = await cache.keys();
+            if (keys.length > 0) {
+                bookmarkSearch.updateModelStatus('loading', 'Loading cached model...');
+                // Preload model in background
+                bookmarkSearch.loadModelOnly().then(() => {
+                    bookmarkSearch.updateModelStatus('loaded', 'Model cached and ready');
+                }).catch(() => {
+                    bookmarkSearch.updateModelStatus('not_loaded', 'Model not loaded - loads on demand');
+                });
+            } else {
+                bookmarkSearch.updateModelStatus('not_loaded', 'Model not loaded - loads on demand');
+            }
+        } catch (e) {
+            bookmarkSearch.updateModelStatus('not_loaded', 'Model not loaded - loads on demand');
+        }
+
+        // Enable search input immediately (lazy load model on first use)
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.disabled = false;
+            searchInput.placeholder = "Search bookmarks by meaning...";
+        }
+
+        // Load and display last sync time
+        updateLastSyncTime();
+
+        // Load model button
+        document.getElementById('loadModelBtn')?.addEventListener('click', async () => {
+            const btn = document.getElementById('loadModelBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Loading...';
+
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.disabled = true;
+                searchInput.placeholder = "Loading model...";
+            }
+
+            try {
+                await bookmarkSearch.init();
+                if (searchInput) {
+                    searchInput.disabled = false;
+                    searchInput.placeholder = "Search bookmarks by meaning...";
+                }
+            } catch (error) {
+                console.error('Failed to load model:', error);
+                if (searchInput) {
+                    searchInput.disabled = false;
+                    searchInput.placeholder = "Search bookmarks by meaning...";
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        });
+
+        // Clear cache button
+        document.getElementById('clearCacheBtn')?.addEventListener('click', async () => {
+            const btn = document.getElementById('clearCacheBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Clearing...';
+
+            try {
+                await bookmarkSearch.clearCache();
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 2000);
+            } catch (error) {
+                console.error('Failed to clear cache:', error);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        // Sync button
+        document.getElementById('syncBtn')?.addEventListener('click', async () => {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.disabled = true;
+                searchInput.placeholder = "Syncing bookmarks...";
+            }
+
+            try {
+                const result = await bookmarkSearch.sync(progressCallback);
+                progressCallback = null;
+                if (progressContainer) progressContainer.style.display = 'none';
+
+                // Update last sync time
+                if (result && result.lastSync) {
+                    localStorage.setItem('bookmarkLastSync', result.lastSync);
+                } else {
+                    localStorage.setItem('bookmarkLastSync', new Date().toISOString());
+                }
+                updateLastSyncTime();
+            } catch (error) {
+                console.error('Sync failed:', error);
+            } finally {
+                if (searchInput) {
+                    searchInput.disabled = false;
+                    searchInput.placeholder = "Search bookmarks by meaning...";
+                }
+            }
+        });
+
+        // Show All Bookmarks
+        let currentFilter = 'all';
+        document.getElementById('showAllBtn')?.addEventListener('click', async () => {
+            const resultsDiv = document.getElementById('results');
+            const filterContainer = document.getElementById('filterContainer');
+            if (!resultsDiv || !filterContainer) return;
+
+            resultsDiv.innerHTML = '<div class="text-center py-4"><i class="bi bi-hourglass-split fs-2 text-muted"></i><div class="mt-2">Loading all bookmarks...</div></div>';
+
+            try {
+                // Bookmarks are already loaded on page load, no need for model
+                const bookmarks = bookmarkSearch.bookmarks;
+                if (bookmarks.length === 0) {
+                    resultsDiv.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-bookmark fs-2"></i><div class="mt-2">No bookmarks found</div></div>';
+                    filterContainer.innerHTML = '';
+                    return;
+                }
+
+                // Get unique browsers
+                const browsers = [...new Set(bookmarks.map(b => b.browser))];
+
+                // Filter buttons
+                const filterButtons = ['all', ...browsers].map(browser => {
+                    const active = browser === currentFilter ? ' active' : '';
+                    return `<button class="filter-btn${active}" data-filter="${browser}">${browser === 'all' ? 'All' : browser}</button>`;
+                }).join('');
+                const filterHtml = `<div class="filter-buttons">${filterButtons}</div>`;
+                filterContainer.innerHTML = filterHtml;
+
+                // Function to render bookmarks
+                const renderBookmarks = (filter) => {
+                    let filteredBookmarks = bookmarks;
+                    if (filter !== 'all') {
+                        filteredBookmarks = bookmarks.filter(b => b.browser === filter);
+                    }
+                    const html = filteredBookmarks.slice(0, 100).map(b => `
+                        <div class="bookmark-card">
+                            <a href="${b.url}" target="_blank" class="bookmark-title" title="${escapeHtml(b.title)}">
+                                ${escapeHtml(b.title)}
+                            </a>
+                            <a href="${b.url}" target="_blank" class="bookmark-url" title="${escapeHtml(b.url)}">
+                                ${escapeHtml(b.url.length > 60 ? b.url.substring(0, 60) + '...' : b.url)}
+                            </a>
+                            <div class="bookmark-meta">
+                                <span>${escapeHtml(b.folderPath)}</span> •
+                                <span class="browser-${b.browser.toLowerCase().replace(' ', '-')}">${b.browser}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                    return html + (filteredBookmarks.length > 100 ? '<div class="text-center py-2 text-muted">Showing first 100 bookmarks</div>' : '');
+                };
+
+                resultsDiv.innerHTML = renderBookmarks(currentFilter);
+
+                // Add event listeners for filter buttons
+                filterContainer.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        currentFilter = e.target.dataset.filter;
+                        // Update active class
+                        filterContainer.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        // Re-render bookmarks
+                        resultsDiv.innerHTML = renderBookmarks(currentFilter);
+                    });
+                });
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="text-center py-4 text-danger"><i class="bi bi-exclamation-triangle fs-2"></i><div class="mt-2">Error: ${error.message}</div></div>`;
+                filterContainer.innerHTML = '';
+            }
+        });
+
+        // Search
+        document.getElementById('searchInput')?.addEventListener('input', async (e) => {
+            const query = e.target.value.trim();
+            const resultsDiv = document.getElementById('results');
+            if (!resultsDiv) return;
+
+            if (query.length < 2) {
+                resultsDiv.innerHTML = '';
+                const countDiv = document.getElementById('resultsCount');
+                if (countDiv) countDiv.innerHTML = '';
+                return;
+            }
+
+            // Show loading immediately
+            if (!bookmarkSearch.ready) {
+                resultsDiv.innerHTML = '<div class="text-center py-4"><i class="bi bi-hourglass-split fs-2 text-muted"></i><div class="mt-2">Loading model...</div></div>';
+            } else {
+                resultsDiv.innerHTML = '<div class="text-center py-4"><i class="bi bi-hourglass-split fs-2 text-muted"></i><div class="mt-2">Searching...</div></div>';
+            }
+
+            try {
+                const bookmarks = await bookmarkSearch.search(query);
+
+                // Re-enable search input if it was disabled
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput && searchInput.disabled) {
+                    searchInput.disabled = false;
+                    searchInput.placeholder = "Search bookmarks by meaning...";
+                }
+
+                if (bookmarks.length === 0) {
+                    resultsDiv.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-search fs-2"></i><div class="mt-2">No results found</div></div>';
+                    const countDiv = document.getElementById('resultsCount');
+                    if (countDiv) countDiv.innerHTML = '';
+                    return;
+                }
+
+                const countDiv = document.getElementById('resultsCount');
+                if (countDiv) {
+                    countDiv.innerHTML = `<div class="results-count text-muted">Found ${bookmarks.length} result${bookmarks.length === 1 ? '' : 's'}</div>`;
+                }
+                const html = bookmarks.map(b => `
+                    <div class="bookmark-card">
+                        <a href="${b.url}" target="_blank" class="bookmark-title" title="${escapeHtml(b.title)}">
+                            ${escapeHtml(b.title)}
+                        </a>
+                        <a href="${b.url}" target="_blank" class="bookmark-url" title="${escapeHtml(b.url)}">
+                            ${escapeHtml(b.url.length > 60 ? b.url.substring(0, 60) + '...' : b.url)}
+                        </a>
+                        <div class="bookmark-meta">
+                            <span>${escapeHtml(b.folderPath)}</span> •
+                            <span class="browser-${b.browser.toLowerCase().replace(' ', '-')}">${b.browser}</span>
+                            ${b.similarity ? `<span class="similarity-score ms-2">Similarity: ${(b.similarity * 100).toFixed(1)}%</span>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="text-center py-4 text-danger"><i class="bi bi-exclamation-triangle fs-2"></i><div class="mt-2">Error: ${error.message}</div></div>`;
+                const countDiv = document.getElementById('resultsCount');
+                if (countDiv) countDiv.innerHTML = '';
+            }
+        });
+
+        function updateLastSyncTime() {
+            const lastSync = localStorage.getItem('bookmarkLastSync');
+            const lastSyncEl = document.getElementById('lastSyncTime');
+            if (lastSync && lastSyncEl) {
+                const date = new Date(lastSync);
+                lastSyncEl.textContent = `Last synced: ${date.toLocaleString()}`;
+            } else if (lastSyncEl) {
+                lastSyncEl.textContent = 'Never synced';
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+}

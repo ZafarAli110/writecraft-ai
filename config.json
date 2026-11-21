@@ -1,0 +1,34 @@
+{
+  "Model": {
+    "Path": "AIModels//Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+    "ContextSize": 2048,
+    "GpuLayerCount": 0,
+    "AutoDetectBackend": false
+  },
+  "Performance": {
+    "ThreadCount": 6,
+    "BatchSize": 512,
+    "EnableContextPooling": false,
+    "ContextPoolSize": 1
+  },
+  "Limits": {
+    "MaxTokensPerRequest": 2048,
+    "ShowTokenCounter": true,
+    "ShowFirstTokenLatency": true
+  },
+  "Translation": {
+    "MaxVocabularyWords": 12,
+    "MaxExamples": 4,
+    "UseSmartSelection": true,
+    "AlwaysIncludeHighFrequency": true
+  },
+  "OutputControl": {
+    "StrictLimits": true,
+    "PreventRambling": true,
+    "MaxEmailWords": {
+      "short": 100,
+      "medium": 200,
+      "long": 350
+    }
+  }
+}

@@ -1,0 +1,507 @@
+@{
+    ViewData["Title"] = "Text to Speech";
+}
+
+<div class="container-fluid px-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <div class="feature-icon bg-gradient-blue">
+                    <i class="bi bi-volume-up fs-3"></i>
+                </div>
+                <div>
+                    <h2 class="mb-0 fw-bold">Text to Speech</h2>
+                    <p class="text-muted mb-0">Convert text to natural speech using AI</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Description -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert border-0 feature-description-box">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="bi bi-volume-up-fill fs-4 text-primary"></i>
+                    <div>
+                        <h6 class="mb-1 fw-semibold text-light">Natural Voice Synthesis</h6>
+                        <small class="text-secondary">Generate natural-sounding speech from text using the SpeechT5 model. Choose from multiple voice options including US, Canadian, Scottish, and Indian accents. All processing happens locally in your browser - no data sent to servers.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Status Banner -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div id="modelStatusBanner" class="alert alert-info d-flex align-items-center justify-content-between" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <div>
+                        <strong>First Time Setup:</strong> The SpeechT5 model (~300MB) will be downloaded on first use. 
+                        It's cached in your browser's IndexedDB for instant future access.
+                        <a href="/Setup" class="alert-link ms-2">Pre-download in Setup →</a>
+                    </div>
+                </div>
+            </div>
+            <div id="modelCachedBanner" class="alert alert-success d-flex align-items-center justify-content-between d-none" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <div>
+                        <strong>Ready!</strong> SpeechT5 model is cached and ready to use.
+                        <span class="text-muted ms-2" id="cacheInfo"></span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-danger btn-sm" id="clearCacheBtn" title="Clear cached model">
+                    <i class="bi bi-trash me-1"></i>Clear Cache
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Input Section -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-input-cursor-text me-2"></i>Input Text
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="textInput" class="form-label">Enter text to convert to speech</label>
+                        <textarea 
+                            id="textInput" 
+                            class="form-control" 
+                            rows="6" 
+                            placeholder="Type or paste your text here..."
+                        >Welcome to WriteCraft.AI, the private and local AI writing studio that runs entirely in your browser.</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="speakerSelect" class="form-label">Select Voice</label>
+                        <select id="speakerSelect" class="form-select">
+                            <option value="cmu_us_bdl_arctic-wav-arctic_a0003" selected>US Male 1 (Default)</option>
+                            <option value="cmu_us_rms_arctic-wav-arctic_a0003">US Male 2</option>
+                            <option value="cmu_us_slt_arctic-wav-arctic_a0001">US Female 1</option>
+                            <option value="cmu_us_clb_arctic-wav-arctic_a0001">US Female 2</option>
+                            <option value="cmu_us_jmk_arctic-wav-arctic_a0002">Canadian Male</option>
+                            <option value="cmu_us_awb_arctic-wav-arctic_b0002">Scottish Male</option>
+                            <option value="cmu_us_ksp_arctic-wav-arctic_a0007">Indian Male</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-success btn-lg" id="generateBtn">
+                            <i class="bi bi-volume-up me-2"></i>Generate Speech
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Section -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-soundwave me-2"></i>Generated Audio
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Initial State -->
+                    <div id="outputPlaceholder" class="result-placeholder">
+                        <i class="bi bi-soundwave result-placeholder-icon"></i>
+                        <p class="text-muted">Enter text and click "Generate Speech"</p>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div id="processingSection" class="d-none">
+                        <div class="processing-container">
+                            <div class="processing-spinner">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Generating...</span>
+                                </div>
+                            </div>
+                            <h5 class="mt-3 mb-2" id="processingTitle">Generating Speech...</h5>
+                            <p class="text-muted mb-3" id="processingStatus">Initializing AI model...</p>
+                            
+                            <!-- Progress Bar -->
+                            <div class="progress-container">
+                                <div class="progress" style="height: 8px;">
+                                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <small class="text-muted mt-1 d-block" id="progressText">0%</small>
+                            </div>
+
+                            <!-- Download Size Info -->
+                            <div id="downloadInfo" class="mt-2 d-none">
+                                <small class="text-muted" id="downloadSizeText">Preparing download...</small>
+                            </div>
+
+                            <!-- Processing Stages -->
+                            <div class="processing-stages mt-4">
+                                <div class="stage" id="stageLoad">
+                                    <i class="bi bi-circle stage-icon"></i>
+                                    <span>Loading AI Model</span>
+                                    <small class="text-muted ms-2" id="stageLoadInfo"></small>
+                                </div>
+                                <div class="stage" id="stageTokenize">
+                                    <i class="bi bi-circle stage-icon"></i>
+                                    <span>Tokenizing Text</span>
+                                </div>
+                                <div class="stage" id="stageGenerate">
+                                    <i class="bi bi-circle stage-icon"></i>
+                                    <span>Generating Speech</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Player -->
+                    <div id="audioPlayerSection" class="d-none">
+                        <div class="audio-player-container">
+                            <audio id="audioPlayer" controls class="w-100">
+                                <source id="audioSource" type="audio/wav">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary" id="newAudioBtn">
+                                <i class="bi bi-plus-circle me-2"></i>Generate Another
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="errorSection" class="d-none">
+                        <div class="error-container">
+                            <i class="bi bi-exclamation-triangle-fill error-icon"></i>
+                            <h5 class="mt-3">Generation Failed</h5>
+                            <p class="text-muted" id="errorMessage">An error occurred while generating speech.</p>
+                            <button type="button" class="btn btn-outline-primary mt-2" id="retryBtn">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Try Again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card info-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-shield-check info-item-icon text-success"></i>
+                                <div>
+                                    <h6 class="mb-1">Privacy First</h6>
+                                    <small class="text-muted">All processing happens in your browser. Text never leaves your device.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-mic info-item-icon text-warning"></i>
+                                <div>
+                                    <h6 class="mb-1">Multiple Voices</h6>
+                                    <small class="text-muted">Choose from 7 different voice profiles and accents.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-gpu-card info-item-icon text-primary"></i>
+                                <div>
+                                    <h6 class="mb-1">GPU Accelerated</h6>
+                                    <small class="text-muted">Uses GPU when available for faster speech synthesis.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-hdd info-item-icon text-info"></i>
+                                <div>
+                                    <h6 class="mb-1">Cached in IndexedDB</h6>
+                                    <small class="text-muted">Model stored in browser's IndexedDB. Clear via button above or browser settings.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="~/css/background-remover.css" asp-append-version="true" />
+
+<script type="module">
+    import { init, loadModel, generateSpeech, getModelStatus, isModelCached, clearCache, getCacheSize } from '/js/Tts.js';
+
+    // DOM Elements
+    const textInput = document.getElementById('textInput');
+    const speakerSelect = document.getElementById('speakerSelect');
+    const generateBtn = document.getElementById('generateBtn');
+    const outputPlaceholder = document.getElementById('outputPlaceholder');
+    const processingSection = document.getElementById('processingSection');
+    const audioPlayerSection = document.getElementById('audioPlayerSection');
+    const errorSection = document.getElementById('errorSection');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const audioSource = document.getElementById('audioSource');
+    const newAudioBtn = document.getElementById('newAudioBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const modelStatusBanner = document.getElementById('modelStatusBanner');
+    const modelCachedBanner = document.getElementById('modelCachedBanner');
+    const cacheInfo = document.getElementById('cacheInfo');
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    
+    // Progress elements
+    const processingTitle = document.getElementById('processingTitle');
+    const processingStatus = document.getElementById('processingStatus');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const downloadInfo = document.getElementById('downloadInfo');
+    const downloadSizeText = document.getElementById('downloadSizeText');
+    const stageLoad = document.getElementById('stageLoad');
+    const stageTokenize = document.getElementById('stageTokenize');
+    const stageGenerate = document.getElementById('stageGenerate');
+    const stageLoadInfo = document.getElementById('stageLoadInfo');
+
+    let modelLoaded = false;
+    let maxProgressSeen = 0;
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+        init();
+        setupEventListeners();
+        await checkModelCache();
+    });
+
+    async function checkModelCache() {
+        try {
+            const cached = await isModelCached();
+            if (cached) {
+                modelStatusBanner.classList.add('d-none');
+                modelCachedBanner.classList.remove('d-none');
+                
+                // Show cache size
+                const size = await getCacheSize();
+                if (size.usage > 0) {
+                    const usageMB = (size.usage / 1024 / 1024).toFixed(1);
+                    cacheInfo.textContent = `(~${usageMB} MB stored)`;
+                }
+            }
+        } catch (e) {
+            console.log('Could not check cache status');
+        }
+    }
+
+    async function handleClearCache() {
+        if (!confirm('This will delete the cached SpeechT5 model (~300MB). You will need to download it again on next use. Continue?')) {
+            return;
+        }
+        
+        clearCacheBtn.disabled = true;
+        clearCacheBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Clearing...';
+        
+        try {
+            await clearCache();
+            
+            // Reset UI
+            modelLoaded = false;
+            modelCachedBanner.classList.add('d-none');
+            modelStatusBanner.classList.remove('d-none');
+            
+            alert('Cache cleared successfully! The model will be re-downloaded on next use.');
+        } catch (e) {
+            alert('Failed to clear cache. Try clearing browser data manually.');
+        } finally {
+            clearCacheBtn.disabled = false;
+            clearCacheBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Clear Cache';
+        }
+    }
+
+    function setupEventListeners() {
+        generateBtn.addEventListener('click', handleGenerate);
+        newAudioBtn.addEventListener('click', resetUI);
+        retryBtn.addEventListener('click', handleGenerate);
+        clearCacheBtn.addEventListener('click', handleClearCache);
+        
+        // Enable generate on Enter (Shift+Enter for newline)
+        textInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleGenerate();
+            }
+        });
+    }
+
+    async function handleGenerate() {
+        const text = textInput.value.trim();
+        if (!text) {
+            alert('Please enter some text to generate speech.');
+            return;
+        }
+
+        // Show processing UI
+        outputPlaceholder.classList.add('d-none');
+        audioPlayerSection.classList.add('d-none');
+        errorSection.classList.add('d-none');
+        processingSection.classList.remove('d-none');
+
+        // Reset progress tracking
+        maxProgressSeen = 0;
+        resetStages();
+        updateProgress(0, 'Initializing...');
+
+        try {
+            // Load model if not loaded in memory
+            if (!modelLoaded) {
+                setStageActive(stageLoad);
+                
+                // Check if cached first
+                const isCached = await isModelCached();
+                if (isCached) {
+                    stageLoadInfo.textContent = '(loading from cache)';
+                    updateProgress(5, 'Loading model from cache...');
+                } else {
+                    stageLoadInfo.textContent = '(first time download)';
+                    downloadInfo.classList.remove('d-none');
+                    updateProgress(2, 'Downloading AI model (one-time download)...');
+                }
+                
+                await loadModel((progress) => {
+                    if (progress.status === 'progress') {
+                        const rawPercent = Math.round(progress.progress || 0);
+                        const scaledPercent = 2 + rawPercent * 0.58;
+                        
+                        if (scaledPercent > maxProgressSeen) {
+                            maxProgressSeen = scaledPercent;
+                            updateProgress(scaledPercent, `Downloading model: ${rawPercent}%`);
+                        }
+                        
+                        if (progress.loaded > 0 && progress.total > 0) {
+                            const loadedMB = (progress.loaded / 1024 / 1024).toFixed(1);
+                            const totalMB = (progress.total / 1024 / 1024).toFixed(1);
+                            // Only show if values are meaningful (> 1 MB)
+                            if (parseFloat(totalMB) >= 1) {
+                                downloadSizeText.textContent = `Downloaded: ${loadedMB} MB / ${totalMB} MB`;
+                            }
+                        }
+                    } else if (progress.status === 'ready') {
+                        maxProgressSeen = 65;
+                        updateProgress(65, progress.cached ? 'Model loaded from cache!' : 'Model downloaded!');
+                        downloadInfo.classList.add('d-none');
+                        
+                        // Update banners
+                        modelStatusBanner.classList.add('d-none');
+                        modelCachedBanner.classList.remove('d-none');
+                    }
+                });
+                
+                modelLoaded = true;
+                stageLoadInfo.textContent = '(ready)';
+                setStageComplete(stageLoad);
+            } else {
+                setStageComplete(stageLoad);
+                stageLoadInfo.textContent = '(cached)';
+                maxProgressSeen = 65;
+                updateProgress(65, 'Model ready (cached)');
+            }
+
+            // Tokenize and generate
+            setStageActive(stageTokenize);
+            maxProgressSeen = 70;
+            updateProgress(70, 'Tokenizing text...');
+            
+            setStageActive(stageGenerate);
+            maxProgressSeen = 80;
+            updateProgress(80, 'Generating speech...');
+            
+            const speakerId = speakerSelect.value;
+            const audioBlob = await generateSpeech(text, speakerId, (progress) => {
+                if (progress.status === 'progress') {
+                    const scaled = 80 + (progress.progress * 0.2);
+                    updateProgress(scaled, 'Generating speech...');
+                }
+            });
+            
+            setStageComplete(stageTokenize);
+            setStageComplete(stageGenerate);
+            updateProgress(100, 'Complete!');
+
+            // Display audio player
+            const audioUrl = URL.createObjectURL(audioBlob);
+            audioSource.src = audioUrl;
+            audioPlayer.load();
+            
+            setTimeout(() => {
+                processingSection.classList.add('d-none');
+                audioPlayerSection.classList.remove('d-none');
+            }, 300);
+
+        } catch (error) {
+            console.error('Generation error:', error);
+            showError(error.message || 'An error occurred while generating speech.');
+        }
+    }
+
+    function updateProgress(percent, status) {
+        const displayPercent = Math.max(percent, maxProgressSeen);
+        progressBar.style.width = `${displayPercent}%`;
+        progressText.textContent = `${Math.round(displayPercent)}%`;
+        if (status) {
+            processingStatus.textContent = status;
+        }
+    }
+
+    function resetStages() {
+        [stageLoad, stageTokenize, stageGenerate].forEach(stage => {
+            stage.classList.remove('active', 'complete');
+            stage.querySelector('.stage-icon').className = 'bi bi-circle stage-icon';
+        });
+        stageLoadInfo.textContent = '';
+        downloadInfo.classList.add('d-none');
+    }
+
+    function setStageActive(stage) {
+        stage.classList.add('active');
+        stage.querySelector('.stage-icon').className = 'bi bi-arrow-right-circle-fill stage-icon';
+    }
+
+    function setStageComplete(stage) {
+        stage.classList.remove('active');
+        stage.classList.add('complete');
+        stage.querySelector('.stage-icon').className = 'bi bi-check-circle-fill stage-icon';
+    }
+
+    function showError(message) {
+        processingSection.classList.add('d-none');
+        audioPlayerSection.classList.add('d-none');
+        outputPlaceholder.classList.add('d-none');
+        errorSection.classList.remove('d-none');
+        document.getElementById('errorMessage').textContent = message;
+    }
+
+    function resetUI() {
+        audioPlayerSection.classList.add('d-none');
+        errorSection.classList.add('d-none');
+        outputPlaceholder.classList.remove('d-none');
+        maxProgressSeen = 0;
+        resetStages();
+        updateProgress(0, 'Initializing...');
+        
+        // Stop any playing audio
+        audioPlayer.pause();
+        audioSource.src = '';
+    }
+</script>

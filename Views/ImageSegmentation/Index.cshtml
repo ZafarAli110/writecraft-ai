@@ -1,0 +1,659 @@
+@{
+    ViewData["Title"] = "Image Segmentation";
+}
+
+<div class="container-fluid px-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <div class="feature-icon bg-gradient-purple">
+                    <i class="bi bi-bounding-box fs-3"></i>
+                </div>
+                <div>
+                    <h2 class="mb-0 fw-bold">Image Segmentation</h2>
+                    <p class="text-muted mb-0">Select any object in an image with AI-powered precision</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Description -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert border-0 feature-description-box">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="bi bi-cursor fs-4 text-primary"></i>
+                    <div>
+                        <h6 class="mb-1 fw-semibold text-light">Interactive Object Selection</h6>
+                        <small class="text-secondary">Select any object in an image with just a click using Meta's Segment Anything Model (SAM). Left-click to include areas, right-click to exclude. Perfect for extracting objects, creating masks, and precise image editing - all powered by local AI.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebGPU Warning Banner -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div id="webGPUWarningBanner" class="alert alert-warning d-flex align-items-center d-none" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <div>
+                    <strong>Browser Update Recommended:</strong> For optimal performance, please update your browser to the latest version to enable WebGPU support. This will significantly speed up image segmentation processing.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Status Banner -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div id="modelStatusBanner" class="alert alert-info d-flex align-items-center justify-content-between" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <div>
+                        <strong>First Time Setup:</strong> The Segment Anything Model (~50MB) will be downloaded on first use.
+                        It's cached in your browser's IndexedDB for instant future access.
+                        <a href="/Setup" class="alert-link ms-2">Pre-download in Setup →</a>
+                    </div>
+                </div>
+            </div>
+            <div id="modelCachedBanner" class="alert alert-success d-flex align-items-center justify-content-between d-none" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <div>
+                        <strong>Ready!</strong> Segment Anything Model is cached and ready to use.
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-danger btn-sm" id="clearCacheBtn">
+                    <i class="bi bi-trash me-1"></i>Clear Cache
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card how-it-works-card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3"><i class="bi bi-lightbulb me-2"></i>How It Works</h5>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="step-item">
+                                <span class="step-number">1</span>
+                                <div>
+                                    <strong>Upload Image</strong>
+                                    <p class="mb-0 small text-muted">Upload any image or try the example</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="step-item">
+                                <span class="step-number">2</span>
+                                <div>
+                                    <strong>Click to Select</strong>
+                                    <p class="mb-0 small text-muted">Left-click = include, Right-click = exclude</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="step-item">
+                                <span class="step-number">3</span>
+                                <div>
+                                    <strong>AI Segments</strong>
+                                    <p class="mb-0 small text-muted">The AI automatically finds object boundaries</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="step-item">
+                                <span class="step-number">4</span>
+                                <div>
+                                    <strong>Export Result</strong>
+                                    <p class="mb-0 small text-muted">Download the cut-out as transparent PNG</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Canvas Section -->
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-image me-2"></i>Canvas
+                    </h5>
+                    <div id="statusBadge" class="badge bg-secondary">
+                        <i class="bi bi-upload me-1"></i>Upload an image
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Upload Zone (shown when no image) -->
+                    <div id="uploadZone" class="segmentation-upload-zone">
+                        <div class="upload-content">
+                            <i class="bi bi-cloud-arrow-up-fill upload-icon"></i>
+                            <h5 class="mb-2">Drop your image here</h5>
+                            <p class="text-muted mb-3">or click to browse</p>
+                            <button type="button" class="btn btn-primary" id="browseBtn">
+                                <i class="bi bi-folder2-open me-2"></i>Browse Files
+                            </button>
+                            <input type="file" id="imageInput" accept="image/*" class="d-none">
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-outline-secondary" id="exampleBtn">
+                                    <i class="bi bi-image me-2"></i>Try Example Image
+                                </button>
+                            </div>
+                        </div>
+                        <p class="upload-hint">Supports: JPG, PNG, WebP (Max 10MB)</p>
+                    </div>
+
+                    <!-- Canvas Container (shown when image loaded) -->
+                    <div id="canvasContainer" class="segmentation-canvas-container d-none">
+                        <div id="imageWrapper" class="image-wrapper">
+                            <img id="sourceImage" src="" alt="Source" class="source-image">
+                            <canvas id="maskCanvas" class="mask-canvas"></canvas>
+                            <div id="pointsContainer" class="points-container"></div>
+                        </div>
+                    </div>
+
+                    <!-- Loading Overlay -->
+                    <div id="loadingOverlay" class="loading-overlay d-none">
+                        <div class="loading-content">
+                            <div class="spinner-border text-primary mb-3" role="status"></div>
+                            <h5 id="loadingTitle">Processing...</h5>
+                            <p class="text-muted" id="loadingStatus">Please wait...</p>
+                            <div class="progress-container" id="loadingProgress" style="width: 200px;">
+                                <div class="progress" style="height: 6px;">
+                                    <div id="loadingProgressBar" class="progress-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-sliders me-2"></i>Controls
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Point Legend -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-2">Point Types</h6>
+                        <div class="d-flex gap-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="point-indicator point-positive"></span>
+                                <small>Left Click = Include</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="point-indicator point-negative"></span>
+                                <small>Right Click = Exclude</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Score Display -->
+                    <div class="mb-4" id="scoreSection" style="display: none;">
+                        <h6 class="text-muted mb-2">Segmentation Score</h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress flex-grow-1" style="height: 8px;">
+                                <div id="scoreBar" class="progress-bar bg-success" style="width: 0%"></div>
+                            </div>
+                            <span id="scoreValue" class="fw-bold">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-secondary" id="clearPointsBtn" disabled>
+                            <i class="bi bi-eraser me-2"></i>Clear Points
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="resetImageBtn" disabled>
+                            <i class="bi bi-arrow-clockwise me-2"></i>Reset Image
+                        </button>
+                        <button type="button" class="btn btn-success" id="cutMaskBtn" disabled>
+                            <i class="bi bi-scissors me-2"></i>Cut & Download
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card info-card-small">
+                <div class="card-body">
+                    <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>Tips</h6>
+                    <ul class="mb-0 ps-3">
+                        <li class="mb-2"><small class="text-muted">Hover over the image to see real-time segmentation preview</small></li>
+                        <li class="mb-2"><small class="text-muted">Click to add points for more precise selection</small></li>
+                        <li class="mb-2"><small class="text-muted">Use right-click to exclude unwanted areas</small></li>
+                        <li><small class="text-muted">All processing happens locally in your browser</small></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card info-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-shield-check info-item-icon text-success"></i>
+                                <div>
+                                    <h6 class="mb-1">100% Private</h6>
+                                    <small class="text-muted">All processing happens in your browser. Images never leave your device.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-magic info-item-icon text-warning"></i>
+                                <div>
+                                    <h6 class="mb-1">Segment Anything</h6>
+                                    <small class="text-muted">Powered by Meta's SAM model for precise object segmentation.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-gpu-card info-item-icon text-primary"></i>
+                                <div>
+                                    <h6 class="mb-1">WebGPU Accelerated</h6>
+                                    <small class="text-muted">Update your browser for GPU acceleration and faster processing.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-item">
+                                <i class="bi bi-cursor info-item-icon text-info"></i>
+                                <div>
+                                    <h6 class="mb-1">Interactive Selection</h6>
+                                    <small class="text-muted">Click to include or exclude areas with precision.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="~/css/image-segmentation.css" asp-append-version="true" />
+
+<script type="module">
+    import {
+        init, loadModel, isModelCached, encodeImage,
+        segmentWithPoints, cutMask, resetImage, clearCache, getModelStatus, checkWebGPUSupport
+    } from '/js/image-segmentation.js';
+
+    // DOM Elements
+    const uploadZone = document.getElementById('uploadZone');
+    const canvasContainer = document.getElementById('canvasContainer');
+    const browseBtn = document.getElementById('browseBtn');
+    const imageInput = document.getElementById('imageInput');
+    const exampleBtn = document.getElementById('exampleBtn');
+    const sourceImage = document.getElementById('sourceImage');
+    const maskCanvas = document.getElementById('maskCanvas');
+    const pointsContainer = document.getElementById('pointsContainer');
+    const imageWrapper = document.getElementById('imageWrapper');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingTitle = document.getElementById('loadingTitle');
+    const loadingStatus = document.getElementById('loadingStatus');
+    const loadingProgressBar = document.getElementById('loadingProgressBar');
+    const statusBadge = document.getElementById('statusBadge');
+    const webGPUWarningBanner = document.getElementById('webGPUWarningBanner');
+    const modelStatusBanner = document.getElementById('modelStatusBanner');
+    const modelCachedBanner = document.getElementById('modelCachedBanner');
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    const clearPointsBtn = document.getElementById('clearPointsBtn');
+    const resetImageBtn = document.getElementById('resetImageBtn');
+    const cutMaskBtn = document.getElementById('cutMaskBtn');
+    const scoreSection = document.getElementById('scoreSection');
+    const scoreBar = document.getElementById('scoreBar');
+    const scoreValue = document.getElementById('scoreValue');
+
+    // State
+    let points = [];
+    let isMultiPointMode = false;
+    let lastSegmentResult = null;
+    let modelLoaded = false;
+    let maxProgressSeen = 0;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+        init();
+        setupEventListeners();
+        await checkModelCache();
+
+        // Listen for WebGPU warning
+        window.addEventListener('webgpu-unsupported', () => {
+            webGPUWarningBanner.classList.remove('d-none');
+        });
+    });
+
+    async function checkModelCache() {
+        try {
+            const cached = await isModelCached();
+            if (cached) {
+                modelStatusBanner.classList.add('d-none');
+                modelCachedBanner.classList.remove('d-none');
+            }
+        } catch (e) {
+            console.log('Could not check cache status');
+        }
+    }
+
+    function setupEventListeners() {
+        // Browse button
+        browseBtn.addEventListener('click', () => imageInput.click());
+        uploadZone.addEventListener('click', (e) => {
+            if (!e.target.closest('button')) imageInput.click();
+        });
+
+        // File input
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+               handleFile(e.target.files[0]);
+                e.target.value = ''; // Reset input
+            }
+        });
+
+        // Drag and drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+        });
+
+        // Example button
+        exampleBtn.addEventListener('click', () => {
+            loadImageFromUrl('/images/examples/dog.jpg');
+        });
+
+        // Canvas interactions
+        imageWrapper.addEventListener('mousemove', handleMouseMove);
+        imageWrapper.addEventListener('mousedown', handleMouseDown);
+        imageWrapper.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // Control buttons
+        clearPointsBtn.addEventListener('click', handleClearPoints);
+        resetImageBtn.addEventListener('click', handleResetImage);
+        cutMaskBtn.addEventListener('click', handleCutMask);
+        clearCacheBtn.addEventListener('click', handleClearCache);
+    }
+
+    async function handleFile(file) {
+        if (!file.type.startsWith('image/')) {
+            alert('Please select a valid image file.');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Image size must be less than 10MB.');
+            return;
+        }
+
+        const url = URL.createObjectURL(file);
+        await loadImageFromUrl(url);
+    }
+
+    async function loadImageFromUrl(url) {
+        showLoading('Loading image...');
+        
+        try {
+            // Load model if not loaded
+            if (!modelLoaded) {
+                updateLoading('Downloading AI model (one-time)...', 5);
+                maxProgressSeen = 0;
+                
+                await loadModel((progress) => {
+                    if (progress.status === 'progress') {
+                        const scaled = 5 + Math.max(progress.progress, maxProgressSeen) * 0.5;
+                        if (scaled > maxProgressSeen) {
+                            maxProgressSeen = scaled;
+                            updateLoading(`Downloading model: ${Math.round(progress.progress)}%`, scaled);
+                        }
+                    } else if (progress.status === 'ready') {
+                        modelStatusBanner.classList.add('d-none');
+                        modelCachedBanner.classList.remove('d-none');
+                    }
+                });
+                
+                modelLoaded = true;
+            }
+
+            updateLoading('Processing image...', 60);
+            
+            // Show image
+            sourceImage.src = url;
+            await new Promise((resolve) => {
+                sourceImage.onload = resolve;
+            });
+
+            // Setup canvas
+            maskCanvas.width = sourceImage.naturalWidth;
+            maskCanvas.height = sourceImage.naturalHeight;
+
+            updateLoading('Extracting image features...', 70);
+            
+            // Encode image
+            await encodeImage(url);
+
+            // Show canvas, hide upload
+            uploadZone.classList.add('d-none');
+            canvasContainer.classList.remove('d-none');
+            
+            // Enable controls
+            resetImageBtn.disabled = false;
+            updateStatus('Ready - hover or click to segment');
+            
+            hideLoading();
+
+        } catch (error) {
+            console.error('Error loading image:', error);
+            hideLoading();
+            alert('Failed to load image: ' + error.message);
+        }
+    }
+
+    async function handleMouseMove(e) {
+        if (isMultiPointMode) return; // Don't do hover preview in multi-point mode
+        
+        const status = getModelStatus();
+        if (!status.hasImage || status.encoding || status.decoding) return;
+
+        const point = getPointFromEvent(e);
+        await doSegmentation([{ ...point, label: 1 }], false);
+    }
+
+    async function handleMouseDown(e) {
+        if (e.button !== 0 && e.button !== 2) return;
+
+        const status = getModelStatus();
+        if (!status.hasImage) return;
+
+        const point = getPointFromEvent(e);
+        point.label = e.button === 0 ? 1 : 0; // Left = positive, Right = negative
+
+        if (!isMultiPointMode) {
+            points = [];
+            isMultiPointMode = true;
+            cutMaskBtn.disabled = false;
+            clearPointsBtn.disabled = false;
+        }
+
+        points.push(point);
+        addPointMarker(point);
+        await doSegmentation(points, true);
+    }
+
+    function getPointFromEvent(e) {
+        const rect = imageWrapper.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top) / rect.height;
+        return { x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) };
+    }
+
+    async function doSegmentation(pointsArray, persist) {
+        try {
+            const result = await segmentWithPoints(pointsArray);
+            if (!result) return;
+
+            lastSegmentResult = result;
+            
+            // Draw mask
+            const ctx = maskCanvas.getContext('2d');
+            ctx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+            ctx.putImageData(result.mask, 0, 0);
+
+            // Update score
+            const scorePercent = Math.round(result.score * 100);
+            scoreSection.style.display = 'block';
+            scoreBar.style.width = `${scorePercent}%`;
+            scoreValue.textContent = `${scorePercent}%`;
+
+            if (persist) {
+                updateStatus(`Segment score: ${scorePercent}%`);
+            }
+
+        } catch (error) {
+            console.error('Segmentation error:', error);
+        }
+    }
+
+    function addPointMarker(point) {
+        const marker = document.createElement('div');
+        marker.className = `point-marker ${point.label === 1 ? 'positive' : 'negative'}`;
+        marker.style.left = `${point.x * 100}%`;
+        marker.style.top = `${point.y * 100}%`;
+        marker.innerHTML = point.label === 1 
+            ? '<i class="bi bi-star-fill"></i>' 
+            : '<i class="bi bi-x-lg"></i>';
+        pointsContainer.appendChild(marker);
+    }
+
+    function handleClearPoints() {
+        points = [];
+        isMultiPointMode = false;
+        lastSegmentResult = null;
+        
+        // Clear markers
+        pointsContainer.innerHTML = '';
+        
+        // Clear mask
+        const ctx = maskCanvas.getContext('2d');
+        ctx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+        
+        // Update UI
+        cutMaskBtn.disabled = true;
+        clearPointsBtn.disabled = true;
+        scoreSection.style.display = 'none';
+        updateStatus('Ready - hover or click to segment');
+    }
+
+    async function handleResetImage() {
+        resetImage();
+        
+        // Reset UI
+        points = [];
+        isMultiPointMode = false;
+        lastSegmentResult = null;
+        pointsContainer.innerHTML = '';
+        
+        canvasContainer.classList.add('d-none');
+        uploadZone.classList.remove('d-none');
+        
+        resetImageBtn.disabled = true;
+        clearPointsBtn.disabled = true;
+        cutMaskBtn.disabled = true;
+        scoreSection.style.display = 'none';
+        
+        updateStatus('Ready');
+    }
+
+    async function handleCutMask() {
+        if (!lastSegmentResult) {
+            alert('Please select an area first.');
+            return;
+        }
+
+        try {
+            cutMaskBtn.disabled = true;
+            cutMaskBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processing...';
+            
+            const blob = await cutMask(lastSegmentResult);
+            
+            // Download
+            const link = document.createElement('a');
+            link.download = 'cutout.png';
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            URL.revokeObjectURL(link.href);
+            
+            updateStatus('Downloaded!');
+            
+        } catch (error) {
+            console.error('Cut mask error:', error);
+            alert('Failed to cut mask: ' + error.message);
+        } finally {
+            cutMaskBtn.disabled = false;
+            cutMaskBtn.innerHTML = '<i class="bi bi-scissors me-2"></i>Cut & Download';
+        }
+    }
+
+    async function handleClearCache() {
+        if (!confirm('This will delete the cached AI model. You will need to download it again on next use. Continue?')) {
+            return;
+        }
+        
+        try {
+            await clearCache();
+            modelLoaded = false;
+            modelCachedBanner.classList.add('d-none');
+            modelStatusBanner.classList.remove('d-none');
+            handleResetImage();
+            alert('Cache cleared successfully!');
+        } catch (e) {
+            alert('Failed to clear cache.');
+        }
+    }
+
+    function showLoading(title, progress = 0) {
+        loadingOverlay.classList.remove('d-none');
+        loadingTitle.textContent = title;
+        loadingProgressBar.style.width = `${progress}%`;
+    }
+
+    function updateLoading(status, progress) {
+        loadingStatus.textContent = status;
+        loadingProgressBar.style.width = `${progress}%`;
+    }
+
+    function hideLoading() {
+        loadingOverlay.classList.add('d-none');
+    }
+
+    function updateStatus(text) {
+        statusBadge.innerHTML = `<i class="bi bi-check-circle me-1"></i>${text}`;
+        statusBadge.className = 'badge bg-success';
+    }
+</script>

@@ -1,0 +1,384 @@
+@{
+    ViewData["Title"] = "Writing Assistant - WriteCraftAI";
+}
+
+@section Styles {
+    <style>
+        .token-counter {
+            font-size: 0.875rem;
+            color: var(--bs-secondary-color);
+        }
+
+        .token-counter.warning {
+            color: var(--bs-warning) !important;
+        }
+
+        .token-counter.danger {
+            color: var(--bs-danger) !important;
+        }
+
+        .output-area {
+            min-height: 200px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .metrics {
+            font-size: 0.75rem;
+            color: var(--bs-secondary);
+        }
+
+        @@keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+}
+
+<div class="row">
+    <div class="col-12">
+
+        <!-- Feature Description -->
+        <div class="alert border-0 mb-4 feature-description-box">
+            <div class="d-flex align-items-start gap-3">
+                <i class="bi bi-pencil-square fs-4 text-primary"></i>
+                <div>
+                    <h6 class="mb-1 fw-semibold text-light">Smart Writing Assistant</h6>
+                    <small class="text-secondary">Transform your writing with AI assistance. <strong>Supports multiple languages</strong> - write in English, Urdu, Arabic, French, Spanish, or any language. Improve text for clarity, summarize, expand ideas, simplify, or adjust tone. Perfect for essays, articles, and professional documents.</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Card -->
+        <div class="card mb-4 border-slate-700 bg-slate-800">
+            <div class="card-header bg-slate-900 border-bottom border-slate-700">
+                <h5 class="mb-0 text-indigo-400">
+                    <i class="bi bi-pen me-2"></i>Your Text
+                </h5>
+            </div>
+            <div class="card-body">
+                <textarea id="inputText" class="form-control bg-slate-900 text-slate-100 border-slate-600"
+                          rows="6" placeholder="Enter your text for writing assistance..."></textarea>
+
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                    <span id="tokenCounter" class="token-counter">Tokens: 0/4096</span>
+
+                    <div class="d-flex gap-2 flex-wrap align-items-center">
+                        <button type="button" id="voiceInputBtn" class="btn btn-outline-secondary btn-sm" title="Record voice input (max 30s)">
+                            <i class="bi bi-mic"></i>
+                        </button>
+                        <select id="taskSelect" class="form-select form-select-sm w-auto bg-slate-900 text-slate-100 border-slate-600">
+                            <option value="general">💬 General Writing</option>
+                            <option value="improve">✨ Improve</option>
+                            <option value="summarize">📝 Summarize</option>
+                            <option value="expand">📈 Expand</option>
+                            <option value="simplify">🎯 Simplify</option>
+                            <option value="formal">👔 Make Formal</option>
+                            <option value="creative">🎨 Make Creative</option>
+                        </select>
+                        <button id="assistBtn" class="btn btn-primary btn-sm fw-semibold">
+                            <span class="d-none spinner-border spinner-border-sm me-1" id="assistSpinner"></span>
+                            <i class="bi bi-stars"></i> Assist
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Voice Input Progress Stages -->
+                <div id="voiceProgressStages" class="mt-3 p-3 rounded" style="display: none; background: rgba(99, 102, 241, 0.1);">
+                    <div class="d-flex flex-column gap-2">
+                        <div id="stageRecording" class="d-flex align-items-center gap-2 text-secondary">
+                            <i class="bi bi-circle"></i>
+                            <span>Recording audio</span>
+                            <span id="recordingTime" class="ms-auto small"></span>
+                        </div>
+                        <div id="stageTranscribing" class="d-flex align-items-center gap-2 text-secondary">
+                            <i class="bi bi-circle"></i>
+                            <span>Transcribing speech</span>
+                            <span id="transcribingTime" class="ms-auto small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Card -->
+        <div class="card border-slate-700 bg-slate-800" id="outputCard" style="display: none;">
+            <div class="card-header bg-slate-900 border-bottom border-slate-700 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-indigo-400">
+                    <i class="bi bi-magic me-2"></i>AI Assistance
+                </h5>
+                <small id="metrics" class="metrics"></small>
+            </div>
+            <div id="aiLoadingIndicator" class="ai-loading-indicator" style="display: none;">
+                <span class="spinner-border text-primary" role="status"></span>
+                <span>AI is processing...</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="waitingMessage" class="waiting-text" style="display: none;">
+                    Working on your request<span class="waiting-dots"></span>
+                </div>
+                <div id="output" class="output-area m-0 p-3"></div>
+            </div>
+            <div class="card-footer bg-slate-900 border-top border-slate-700">
+                <div class="d-flex gap-2 justify-content-end">
+                    <button id="copyBtn" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                    <button id="clearBtn" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-trash"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/stream-handler.js" asp-append-version="true"></script>
+    <script>
+        const inputText = document.getElementById('inputText');
+        const tokenCounter = document.getElementById('tokenCounter');
+        const assistBtn = document.getElementById('assistBtn');
+        const assistSpinner = document.getElementById('assistSpinner');
+        const outputCard = document.getElementById('outputCard');
+        const output = document.getElementById('output');
+        const metrics = document.getElementById('metrics');
+        const waitingMessage = document.getElementById('waitingMessage');
+        const aiLoadingIndicator = document.getElementById('aiLoadingIndicator');
+        const voiceInputBtn = document.getElementById('voiceInputBtn');
+        const voiceProgressStages = document.getElementById('voiceProgressStages');
+        const stageRecording = document.getElementById('stageRecording');
+        const stageTranscribing = document.getElementById('stageTranscribing');
+        const recordingTime = document.getElementById('recordingTime');
+        const transcribingTime = document.getElementById('transcribingTime');
+
+        // Initialize OutputHandler for markdown rendering
+        const outputHandler = new OutputHandler(output);
+
+        // Voice Input Handler
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingStartTime = null;
+        let recordingInterval = null;
+
+        function setStageActive(stageEl) {
+            stageEl.classList.remove('text-secondary', 'text-success');
+            stageEl.classList.add('text-warning');
+            stageEl.querySelector('i').className = 'bi bi-arrow-repeat';
+            stageEl.querySelector('i').style.animation = 'spin 1s linear infinite';
+        }
+
+        function setStageComplete(stageEl, timeMs) {
+            stageEl.classList.remove('text-secondary', 'text-warning');
+            stageEl.classList.add('text-success');
+            stageEl.querySelector('i').className = 'bi bi-check-circle-fill';
+            stageEl.querySelector('i').style.animation = '';
+            const timeSpan = stageEl.querySelector('.ms-auto');
+            if (timeSpan && timeMs) {
+                timeSpan.textContent = `${(timeMs / 1000).toFixed(1)}s`;
+            }
+        }
+
+        function resetVoiceStages() {
+            [stageRecording, stageTranscribing].forEach(el => {
+                el.classList.remove('text-warning', 'text-success');
+                el.classList.add('text-secondary');
+                el.querySelector('i').className = 'bi bi-circle';
+                el.querySelector('i').style.animation = '';
+            });
+            recordingTime.textContent = '';
+            transcribingTime.textContent = '';
+        }
+
+        voiceInputBtn.addEventListener('click', async () => {
+            if (isRecording) {
+                if (mediaRecorder) mediaRecorder.stop();
+            } else {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+                    mediaRecorder = new MediaRecorder(stream, { mimeType });
+                    audioChunks = [];
+
+                    // Show progress stages
+                    resetVoiceStages();
+                    voiceProgressStages.style.display = 'block';
+                    setStageActive(stageRecording);
+                    recordingStartTime = Date.now();
+                    
+                    // Update recording time every 100ms
+                    recordingInterval = setInterval(() => {
+                        const elapsed = Date.now() - recordingStartTime;
+                        recordingTime.textContent = `${(elapsed / 1000).toFixed(1)}s`;
+                    }, 100);
+
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) audioChunks.push(e.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        clearInterval(recordingInterval);
+                        const recordingDuration = Date.now() - recordingStartTime;
+                        setStageComplete(stageRecording, recordingDuration);
+                        
+                        stream.getTracks().forEach(t => t.stop());
+                        voiceInputBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                        voiceInputBtn.disabled = true;
+                        
+                        // Start transcribing
+                        setStageActive(stageTranscribing);
+                        const transcribeStart = Date.now();
+
+                        try {
+                            const blob = new Blob(audioChunks, { type: mimeType });
+                            const formData = new FormData();
+                            formData.append('audio', blob, 'recording.webm');
+                            const response = await fetch('/api/asr/transcribe', { method: 'POST', body: formData });
+                            const result = await response.json();
+                            
+                            setStageComplete(stageTranscribing, Date.now() - transcribeStart);
+                            
+                            if (result.rawText) {
+                                inputText.value = inputText.value.trim() 
+                                    ? inputText.value.trim() + ' ' + result.rawText.trim()
+                                    : result.rawText.trim();
+                                updateTokenCount();
+                            }
+                            
+                            // Hide progress after 2s
+                            setTimeout(() => {
+                                voiceProgressStages.style.display = 'none';
+                            }, 2000);
+                        } catch (err) {
+                            stageTranscribing.classList.remove('text-warning');
+                            stageTranscribing.classList.add('text-danger');
+                            stageTranscribing.querySelector('i').className = 'bi bi-x-circle-fill';
+                            alert('Voice transcription failed.');
+                        } finally {
+                            voiceInputBtn.innerHTML = '<i class="bi bi-mic"></i>';
+                            voiceInputBtn.disabled = false;
+                            voiceInputBtn.classList.remove('btn-danger');
+                            voiceInputBtn.classList.add('btn-outline-secondary');
+                            isRecording = false;
+                        }
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    voiceInputBtn.innerHTML = '<i class="bi bi-stop-fill"></i>';
+                    voiceInputBtn.classList.remove('btn-outline-secondary');
+                    voiceInputBtn.classList.add('btn-danger');
+                    setTimeout(() => { if (isRecording && mediaRecorder) mediaRecorder.stop(); }, 30000);
+                } catch (err) {
+                    alert('Could not access microphone.');
+                    voiceProgressStages.style.display = 'none';
+                }
+            }
+        });
+
+        function updateTokenCount() {
+            const words = inputText.value.trim().split(/\s+/).filter(Boolean).length;
+            const tokens = Math.ceil(words / 0.75);
+            tokenCounter.textContent = `Tokens: ${tokens}/4096`;
+
+            if (tokens > 3600) {
+                tokenCounter.className = 'token-counter danger';
+            } else if (tokens > 3072) {
+                tokenCounter.className = 'token-counter warning';
+            } else {
+                tokenCounter.className = 'token-counter';
+            }
+        }
+
+        inputText.addEventListener('input', updateTokenCount);
+
+        assistBtn.addEventListener('click', async () => {
+            const text = inputText.value.trim();
+            if (!text) {
+                alert('Please enter text for writing assistance.');
+                return;
+            }
+
+            outputHandler.clear();
+            outputCard.style.display = 'block';
+            waitingMessage.style.display = 'block';
+            aiLoadingIndicator.style.display = 'flex';
+            assistBtn.disabled = true;
+            assistSpinner.classList.remove('d-none');
+            metrics.textContent = '⏳ Initializing...';
+
+            const request = {
+                text: text,
+                task: document.getElementById('taskSelect').value
+            };
+
+            try {
+                new StreamHandler('/api/writing/assist', request, {
+                    onToken: (token) => {
+                        waitingMessage.style.display = 'none';
+                        outputHandler.appendToken(token);
+                    },
+
+                    onFirstToken: (latency) => {
+                        metrics.textContent = `⚡ First token: ${latency.toFixed(2)}s`;
+                    },
+
+                    onStatus: (status) => {
+                        metrics.textContent = status;
+                    },
+
+                    onComplete: (message) => {
+                        aiLoadingIndicator.style.display = 'none';
+                        assistBtn.disabled = false;
+                        assistSpinner.classList.add('d-none');
+                        metrics.textContent = `${metrics.textContent} | ✅ Complete`;
+                        output.style.borderLeft = '3px solid var(--bs-success)';
+                        setTimeout(() => output.style.borderLeft = '', 1000);
+                    },
+
+                    onError: (error) => {
+                        console.error('Writing assistance error:', error);
+                        waitingMessage.style.display = 'none';
+                        aiLoadingIndicator.style.display = 'none';
+                        outputHandler.setError(`❌ ${error}`);
+                        assistBtn.disabled = false;
+                        assistSpinner.classList.add('d-none');
+                        metrics.textContent = '❌ Error occurred';
+                    }
+                });
+            } catch (err) {
+                console.error('Failed to start writing assistance:', err);
+                waitingMessage.style.display = 'none';
+                aiLoadingIndicator.style.display = 'none';
+                metrics.textContent = '❌ Failed to start assistance';
+                assistBtn.disabled = false;
+                assistSpinner.classList.add('d-none');
+            }
+        });
+
+        document.getElementById('copyBtn').onclick = async () => {
+            try {
+                const rawText = outputHandler.getRawText();
+                await navigator.clipboard.writeText(rawText);
+                const btn = document.getElementById('copyBtn');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(() => btn.innerHTML = original, 1500);
+            } catch (err) {
+                alert('Failed to copy: ' + err.message);
+            }
+        };
+
+        document.getElementById('clearBtn').onclick = () => {
+            if (outputHandler.getRawText() && confirm('Clear all text?')) {
+                inputText.value = '';
+                outputCard.style.display = 'none';
+                updateTokenCount();
+            }
+        };
+    </script>
+}
